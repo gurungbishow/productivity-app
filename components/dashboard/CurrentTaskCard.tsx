@@ -11,7 +11,8 @@ import {
   RotateCcw,
   SkipForward,
   Clock, 
-  Check
+  Check,
+  Zap
 } from 'lucide-react';
 
 export function CurrentTaskCard() {
@@ -251,28 +252,40 @@ export function CurrentTaskCard() {
             <span className={`w-1.5 h-1.5 rounded-full ${
               timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400' : 'bg-cyan-400'
             }`} />
-            <span>Session {timerState.sessionNumber} of 4</span>
+            <span>
+              {timerState.mode === 'long_break'
+                ? `Cycle Complete (${pomodoroSettings.longBreakInterval || 4}/${pomodoroSettings.longBreakInterval || 4}) • Long Break`
+                : `Session ${timerState.sessionNumber} of ${pomodoroSettings.longBreakInterval || 4}`}
+            </span>
           </span>
 
-          {/* 4 Visual Session Indicator Pills */}
-          <div className="flex items-center gap-1.5">
-            {[1, 2, 3, 4].map((step) => {
-              const isPast = step < timerState.sessionNumber;
-              const isCurrent = step === timerState.sessionNumber;
-              return (
-                <div
-                  key={step}
-                  title={`Session ${step} of 4`}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    isCurrent
-                      ? 'w-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-sm shadow-indigo-500/50'
-                      : isPast
-                      ? 'w-2 bg-emerald-400/90'
-                      : 'w-2 bg-white/15'
-                  }`}
-                />
-              );
-            })}
+          <div className="flex items-center gap-2.5">
+            {/* Auto status badge */}
+            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium text-slate-400">
+              <Zap className={`w-2.5 h-2.5 ${pomodoroSettings.autoStartBreaks && pomodoroSettings.autoStartFocus ? 'text-amber-400' : 'text-slate-500'}`} />
+              <span>{pomodoroSettings.autoStartBreaks && pomodoroSettings.autoStartFocus ? 'Auto-flow' : 'Manual'}</span>
+            </span>
+
+            {/* Visual Session Indicator Pills */}
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: pomodoroSettings.longBreakInterval || 4 }, (_, i) => i + 1).map((step) => {
+                const isPast = step < timerState.sessionNumber;
+                const isCurrent = step === timerState.sessionNumber;
+                return (
+                  <div
+                    key={step}
+                    title={`Session ${step} of ${pomodoroSettings.longBreakInterval || 4}`}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      isCurrent
+                        ? 'w-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-sm shadow-indigo-500/50'
+                        : isPast
+                        ? 'w-2 bg-emerald-400/90'
+                        : 'w-2 bg-white/15'
+                    }`}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
 

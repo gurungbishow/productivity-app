@@ -62,6 +62,11 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
   shortBreakMinutes: 5,
   longBreakMinutes: 15,
   soundEnabled: true,
+  soundType: 'bell',
+  soundVolume: 0.8,
+  autoStartBreaks: true,
+  autoStartFocus: true,
+  longBreakInterval: 4,
   ambientSound: 'none',
   ambientVolume: 0.25,
 };
@@ -425,58 +430,82 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const handleTimerCompletion = useCallback((state: GlobalPomodoroState) => {
     if (state.notificationSent) return;
+    // Latch synchronously to prevent duplicate calls during the 250ms tick interval
+    timerStateRef.current = { ...timerStateRef.current, notificationSent: true };
 
     if (pomodoroSettings.soundEnabled) {
-      playTimerEndSound();
+      playTimerEndSound(pomodoroSettings.soundType, pomodoroSettings.soundVolume);
     }
     
-    // Web Notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const title = state.mode === 'work' ? 'Focus Complete!' : 'Break Complete!';
-      const body = state.mode === 'work' ? 'Time for a break.' : 'Ready for another focus session?';
-      new Notification(title, { body, icon: '/icon-192x192.png' });
-    }
+    const maxSessions = pomodoroSettings.longBreakInterval || 4;
 
     if (state.mode === 'work') {
       recordFocusSession(pomodoroSettings.workMinutes, 'work', activeTaskRef.current || 'Self Directed Focus');
       triggerConfetti();
-      const nextSession = state.sessionNumber; 
       
-      let nextMode: PomodoroMode = 'short_break';
-      let nextDuration = pomodoroSettings.shortBreakMinutes * 60;
+      const currentSession = state.sessionNumber;
+      const isLongBreak = currentSession >= maxSessions;
+      const nextMode: PomodoroMode = isLongBreak ? 'long_break' : 'short_break';
+      const nextDuration = (isLongBreak ? pomodoroSettings.longBreakMinutes : pomodoroSettings.shortBreakMinutes) * 60;
+      const shouldAutoStart = Boolean(pomodoroSettings.autoStartBreaks);
 
-      if (nextSession >= 4) {
-        nextMode = 'long_break';
-        nextDuration = pomodoroSettings.longBreakMinutes * 60;
+      const nextStatus = shouldAutoStart ? 'running' : 'idle';
+      const nextEndTime = shouldAutoStart ? Date.now() + nextDuration * 1000 : null;
+
+      // Web Notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const title = isLongBreak ? 'Focus Milestone Reached! 🌟' : 'Focus Sprint Complete! 🎉';
+        const body = isLongBreak
+          ? `Session ${currentSession} of ${maxSessions} complete. ${shouldAutoStart ? 'Long break timer started.' : 'Time for a long break.'}`
+          : `Session ${currentSession} of ${maxSessions} complete. ${shouldAutoStart ? 'Break timer started.' : 'Take a short break.'}`;
+        new Notification(title, { body, icon: '/icon-192x192.png' });
       }
       
       setTimerState(prev => ({
         ...prev,
-        status: 'idle',
+        status: nextStatus,
         mode: nextMode,
+        sessionNumber: currentSession,
         durationSeconds: nextDuration,
-        endTime: null,
+        endTime: nextEndTime,
         pausedRemainingSeconds: null,
-        notificationSent: true
+        notificationSent: false
       }));
       setDisplayTime(nextDuration);
 
     } else {
-      recordFocusSession(state.mode === 'short_break' ? pomodoroSettings.shortBreakMinutes : pomodoroSettings.longBreakMinutes, state.mode, activeTaskRef.current || 'Self Directed Focus');
+      const breakDuration = state.mode === 'short_break' ? pomodoroSettings.shortBreakMinutes : pomodoroSettings.longBreakMinutes;
+      recordFocusSession(breakDuration, state.mode, activeTaskRef.current || 'Self Directed Focus');
       
-      const nextSession = state.mode === 'short_break' && state.sessionNumber < 4 ? state.sessionNumber + 1 : 1;
-      
+      // If short break: increment session count. If long break: reset cycle back to 1.
+      const nextSession = state.mode === 'short_break' && state.sessionNumber < maxSessions
+        ? state.sessionNumber + 1
+        : 1;
+
+      const nextDuration = pomodoroSettings.workMinutes * 60;
+      const shouldAutoStart = Boolean(pomodoroSettings.autoStartFocus);
+
+      const nextStatus = shouldAutoStart ? 'running' : 'idle';
+      const nextEndTime = shouldAutoStart ? Date.now() + nextDuration * 1000 : null;
+
+      // Web Notification
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const title = state.mode === 'long_break' ? 'Cycle Reset! 🚀' : 'Break Finished! ⚡';
+        const body = `Starting Focus Session ${nextSession} of ${maxSessions}. ${shouldAutoStart ? 'Focus timer running!' : 'Ready when you are.'}`;
+        new Notification(title, { body, icon: '/icon-192x192.png' });
+      }
+
       setTimerState(prev => ({
         ...prev,
-        status: 'idle',
+        status: nextStatus,
         mode: 'work',
         sessionNumber: nextSession,
-        durationSeconds: pomodoroSettings.workMinutes * 60,
-        endTime: null,
+        durationSeconds: nextDuration,
+        endTime: nextEndTime,
         pausedRemainingSeconds: null,
-        notificationSent: true
+        notificationSent: false
       }));
-      setDisplayTime(pomodoroSettings.workMinutes * 60);
+      setDisplayTime(nextDuration);
     }
   }, [pomodoroSettings, recordFocusSession]);
 
@@ -594,18 +623,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const skipSession = useCallback(() => {
     const state = timerStateRef.current;
+    const maxSessions = pomodoroSettings.longBreakInterval || 4;
     if (state.mode === 'work') {
-      const nextSession = state.sessionNumber;
-      let nextMode: PomodoroMode = 'short_break';
-      let nextDuration = pomodoroSettings.shortBreakMinutes * 60;
-      if (nextSession >= 4) {
-        nextMode = 'long_break';
-        nextDuration = pomodoroSettings.longBreakMinutes * 60;
-      }
+      const isLongBreak = state.sessionNumber >= maxSessions;
+      const nextMode: PomodoroMode = isLongBreak ? 'long_break' : 'short_break';
+      const nextDuration = (isLongBreak ? pomodoroSettings.longBreakMinutes : pomodoroSettings.shortBreakMinutes) * 60;
       setTimerState(prev => ({ ...prev, status: 'idle', mode: nextMode, durationSeconds: nextDuration, endTime: null, pausedRemainingSeconds: null, notificationSent: false }));
       setDisplayTime(nextDuration);
     } else {
-      const nextSession = state.mode === 'short_break' && state.sessionNumber < 4 ? state.sessionNumber + 1 : 1;
+      const nextSession = state.mode === 'short_break' && state.sessionNumber < maxSessions ? state.sessionNumber + 1 : 1;
       const nextDuration = pomodoroSettings.workMinutes * 60;
       setTimerState(prev => ({ ...prev, status: 'idle', mode: 'work', sessionNumber: nextSession, durationSeconds: nextDuration, endTime: null, pausedRemainingSeconds: null, notificationSent: false }));
       setDisplayTime(nextDuration);

@@ -32,11 +32,18 @@ export interface DailyLog {
 
 export type PomodoroMode = 'work' | 'short_break' | 'long_break';
 
+export type PomodoroSoundType = 'bell' | 'digital' | 'gong' | 'marimba';
+
 export interface PomodoroSettings {
   workMinutes: number;
   shortBreakMinutes: number;
   longBreakMinutes: number;
   soundEnabled: boolean;
+  soundType: PomodoroSoundType;
+  soundVolume: number; // 0 to 1
+  autoStartBreaks: boolean;
+  autoStartFocus: boolean;
+  longBreakInterval: number; // default: 4 sessions
   ambientSound: 'none' | 'rain' | 'brown';
   ambientVolume: number;
 }
