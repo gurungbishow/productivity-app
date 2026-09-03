@@ -7,14 +7,11 @@ import {
   User,
   Check,
   RotateCcw,
-  Sparkles,
   Flame,
   Coffee,
   Moon,
   Target,
-  ShieldCheck,
   X,
-  Cloud,
   LogOut
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
@@ -29,7 +26,7 @@ export function SettingsView() {
     clearSchedule,
   } = useAppStore();
 
-  const { user, session } = useAuth();
+  const { user } = useAuth();
 
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -68,10 +65,9 @@ export function SettingsView() {
     }
   };
 
-  const workPresets = [15, 25, 45, 50, 60];
+  const workPresets = [10, 15, 25, 45, 50, 60];
   const shortBreakPresets = [3, 5, 8, 10];
   const longBreakPresets = [10, 15, 20, 30];
-  const focusGoalPresets = [120, 180, 240, 360, 480]; // 2h, 3h, 4h, 6h, 8h
 
   // Calculate slider percentage fills for sleek dynamic gradient tracks
   const workPercent = Math.min(100, Math.max(0, ((pomodoroSettings.workMinutes - 5) / (90 - 5)) * 100));
@@ -127,8 +123,8 @@ export function SettingsView() {
                 key={val}
                 onClick={() => handlePomodoroChange('workMinutes', val)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 ${pomodoroSettings.workMinutes === val
-                    ? 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-[0_0_14px_rgba(99,102,241,0.6)] border border-indigo-300/60 font-black'
-                    : 'bg-white/[0.04] border border-white/[0.08] hover:border-indigo-400/30 text-slate-300 hover:text-white'
+                  ? 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-[0_0_14px_rgba(99,102,241,0.6)] border border-indigo-300/60 font-black'
+                  : 'bg-white/[0.04] border border-white/[0.08] hover:border-indigo-400/30 text-slate-300 hover:text-white'
                   }`}
               >
                 {val}m
@@ -168,8 +164,8 @@ export function SettingsView() {
                 key={val}
                 onClick={() => handlePomodoroChange('shortBreakMinutes', val)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 ${pomodoroSettings.shortBreakMinutes === val
-                    ? 'bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-500 text-white shadow-[0_0_14px_rgba(16,185,129,0.6)] border border-emerald-300/60 font-black'
-                    : 'bg-white/[0.04] border border-white/[0.08] hover:border-emerald-400/30 text-slate-300 hover:text-white'
+                  ? 'bg-gradient-to-tr from-emerald-600 via-emerald-500 to-teal-500 text-white shadow-[0_0_14px_rgba(16,185,129,0.6)] border border-emerald-300/60 font-black'
+                  : 'bg-white/[0.04] border border-white/[0.08] hover:border-emerald-400/30 text-slate-300 hover:text-white'
                   }`}
               >
                 {val}m
@@ -209,8 +205,8 @@ export function SettingsView() {
                 key={val}
                 onClick={() => handlePomodoroChange('longBreakMinutes', val)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 ${pomodoroSettings.longBreakMinutes === val
-                    ? 'bg-gradient-to-tr from-cyan-600 via-cyan-500 to-blue-500 text-white shadow-[0_0_14px_rgba(6,182,212,0.6)] border border-cyan-300/60 font-black'
-                    : 'bg-white/[0.04] border border-white/[0.08] hover:border-cyan-400/30 text-slate-300 hover:text-white'
+                  ? 'bg-gradient-to-tr from-cyan-600 via-cyan-500 to-blue-500 text-white shadow-[0_0_14px_rgba(6,182,212,0.6)] border border-cyan-300/60 font-black'
+                  : 'bg-white/[0.04] border border-white/[0.08] hover:border-cyan-400/30 text-slate-300 hover:text-white'
                   }`}
               >
                 {val}m

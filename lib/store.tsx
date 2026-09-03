@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog, PomodoroMode } from './types';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog, PomodoroMode, GlobalPomodoroState } from './types';
 import { DEFAULT_SCHEDULE, parseTimeToMinutes } from './scheduleEngine';
+import { triggerConfetti, playTimerEndSound } from './utils';
 
 interface AppContextType {
   isLoaded: boolean;
@@ -29,6 +30,14 @@ interface AppContextType {
   updateProfile: (updates: Partial<UserProfile>) => void;
   todayFocusMinutes: number;
   todayCompletedCount: number;
+  timerState: GlobalPomodoroState;
+  displayTime: number;
+  startTimer: () => void;
+  pauseTimer: () => void;
+  resumeTimer: () => void;
+  resetTimer: () => void;
+  skipSession: () => void;
+  changeMode: (mode: PomodoroMode) => void;
 }
 
 const STORAGE_KEYS = {
@@ -74,10 +83,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [userDefaultSchedule, setUserDefaultSchedule] = useState<ScheduleItem[]>([]);
   const [activeTaskForTimer, setActiveTaskForTimer] = useState<string | null>(null);
 
+  // Global Pomodoro State
+  const [timerState, setTimerState] = useState<GlobalPomodoroState>({
+    status: 'idle',
+    mode: 'work',
+    durationSeconds: DEFAULT_SETTINGS.workMinutes * 60,
+    endTime: null,
+    pausedRemainingSeconds: null,
+    sessionNumber: 1,
+    notificationSent: false,
+  });
+  const [displayTime, setDisplayTime] = useState<number>(DEFAULT_SETTINGS.workMinutes * 60);
+
+  // Silent audio for background activity
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      silentAudioRef.current = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+      silentAudioRef.current.loop = true;
+    }
+  }, []);
+
+  // Sync state reference to handle callbacks cleanly
+  const timerStateRef = useRef<GlobalPomodoroState>(timerState);
+  useEffect(() => {
+    timerStateRef.current = timerState;
+  }, [timerState]);
+
   // Initialize from LocalStorage
   useEffect(() => {
-    try {
-      const today = getTodayString();
+    const initTimer = setTimeout(() => {
+      try {
+        const today = getTodayString();
 
       // Load Profile
       const savedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE);
@@ -143,11 +180,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedUserDefault) {
         setUserDefaultSchedule(JSON.parse(savedUserDefault));
       }
-    } catch (err) {
-      console.error('Failed to load storage state:', err);
-    } finally {
+
+      // Load Pomodoro Global State
+      const savedTimerState = localStorage.getItem('pomodoro-state');
+      if (savedTimerState) {
+        const parsed = JSON.parse(savedTimerState) as GlobalPomodoroState;
+        
+        let initialDisplay = parsed.durationSeconds;
+        
+        if (parsed.status === 'running' && parsed.endTime) {
+          const remainingMs = parsed.endTime - Date.now();
+          if (remainingMs > 0) {
+            initialDisplay = Math.ceil(remainingMs / 1000);
+          } else {
+            // Already finished offline
+            initialDisplay = 0;
+          }
+        } else if (parsed.status === 'paused' && parsed.pausedRemainingSeconds !== null) {
+          initialDisplay = parsed.pausedRemainingSeconds;
+        }
+
+        setTimerState(parsed);
+        setDisplayTime(initialDisplay);
+      }
       setIsLoaded(true);
+    } catch (error) {
+      console.error('Failed to load from LocalStorage', error);
+      setIsLoaded(true); // Still load to not break app
     }
+    }, 0);
+    return () => clearTimeout(initTimer);
   }, []);
 
   // Save changes
@@ -214,6 +276,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error(e);
     }
   }, [userDefaultSchedule, isLoaded]);
+
+  // Persist Pomodoro State whenever it changes
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem('pomodoro-state', JSON.stringify(timerState));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [timerState, isLoaded]);
 
   const toggleTaskCompleted = useCallback((id: string): boolean => {
     let isNowCompleted = false;
@@ -328,6 +400,277 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userDefaultSchedule]);
 
+  // --- Pomodoro Global Timer Engine ---
+  
+  const getModeDurationSeconds = useCallback((targetMode: PomodoroMode): number => {
+    switch (targetMode) {
+      case 'work': return pomodoroSettings.workMinutes * 60;
+      case 'short_break': return pomodoroSettings.shortBreakMinutes * 60;
+      case 'long_break': return pomodoroSettings.longBreakMinutes * 60;
+    }
+  }, [pomodoroSettings]);
+
+  // Request Notification Permission
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      try {
+        await Notification.requestPermission();
+      } catch {}
+    }
+  };
+
+  // Trigger Completion
+  const activeTaskRef = useRef(activeTaskForTimer);
+  useEffect(() => { activeTaskRef.current = activeTaskForTimer; }, [activeTaskForTimer]);
+
+  const handleTimerCompletion = useCallback((state: GlobalPomodoroState) => {
+    if (state.notificationSent) return;
+
+    if (pomodoroSettings.soundEnabled) {
+      playTimerEndSound();
+    }
+    
+    // Web Notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const title = state.mode === 'work' ? 'Focus Complete!' : 'Break Complete!';
+      const body = state.mode === 'work' ? 'Time for a break.' : 'Ready for another focus session?';
+      new Notification(title, { body, icon: '/icon-192x192.png' });
+    }
+
+    if (state.mode === 'work') {
+      recordFocusSession(pomodoroSettings.workMinutes, 'work', activeTaskRef.current || 'Self Directed Focus');
+      triggerConfetti();
+      const nextSession = state.sessionNumber; 
+      
+      let nextMode: PomodoroMode = 'short_break';
+      let nextDuration = pomodoroSettings.shortBreakMinutes * 60;
+
+      if (nextSession >= 4) {
+        nextMode = 'long_break';
+        nextDuration = pomodoroSettings.longBreakMinutes * 60;
+      }
+      
+      setTimerState(prev => ({
+        ...prev,
+        status: 'idle',
+        mode: nextMode,
+        durationSeconds: nextDuration,
+        endTime: null,
+        pausedRemainingSeconds: null,
+        notificationSent: true
+      }));
+      setDisplayTime(nextDuration);
+
+    } else {
+      recordFocusSession(state.mode === 'short_break' ? pomodoroSettings.shortBreakMinutes : pomodoroSettings.longBreakMinutes, state.mode, activeTaskRef.current || 'Self Directed Focus');
+      
+      const nextSession = state.mode === 'short_break' && state.sessionNumber < 4 ? state.sessionNumber + 1 : 1;
+      
+      setTimerState(prev => ({
+        ...prev,
+        status: 'idle',
+        mode: 'work',
+        sessionNumber: nextSession,
+        durationSeconds: pomodoroSettings.workMinutes * 60,
+        endTime: null,
+        pausedRemainingSeconds: null,
+        notificationSent: true
+      }));
+      setDisplayTime(pomodoroSettings.workMinutes * 60);
+    }
+  }, [pomodoroSettings, recordFocusSession]);
+
+  // Main UI Loop & Completion Detection
+  useEffect(() => {
+    if (timerState.status !== 'running' || !timerState.endTime) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const remainingMs = timerState.endTime! - Date.now();
+      
+      if (remainingMs <= 0) {
+        setDisplayTime(0);
+        handleTimerCompletion(timerStateRef.current);
+      } else {
+        setDisplayTime(Math.ceil(remainingMs / 1000));
+      }
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [timerState.status, timerState.endTime, handleTimerCompletion]);
+
+  // Handle visibility changes
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        const state = timerStateRef.current;
+        if (state.status === 'running' && state.endTime) {
+          const remainingMs = state.endTime - Date.now();
+          if (remainingMs <= 0) {
+            setDisplayTime(0);
+            handleTimerCompletion(state);
+          } else {
+            setDisplayTime(Math.ceil(remainingMs / 1000));
+          }
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [handleTimerCompletion]);
+
+  // Sync across tabs
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'pomodoro-state' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue) as GlobalPomodoroState;
+          setTimerState(parsed);
+          if (parsed.status === 'running' && parsed.endTime) {
+            const remainingMs = parsed.endTime - Date.now();
+            setDisplayTime(remainingMs > 0 ? Math.ceil(remainingMs / 1000) : 0);
+          } else if (parsed.status === 'paused' && parsed.pausedRemainingSeconds !== null) {
+            setDisplayTime(parsed.pausedRemainingSeconds);
+          } else {
+            setDisplayTime(parsed.durationSeconds);
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  // Control Actions
+  const startTimer = useCallback(async () => {
+    await requestNotificationPermission();
+    
+    let duration = timerState.durationSeconds;
+    if (timerState.status === 'paused' && timerState.pausedRemainingSeconds !== null) {
+      duration = timerState.pausedRemainingSeconds;
+    }
+    
+    const endTime = Date.now() + duration * 1000;
+    
+    setTimerState(prev => ({
+      ...prev,
+      status: 'running',
+      endTime,
+      pausedRemainingSeconds: null,
+      notificationSent: false
+    }));
+  }, [timerState.durationSeconds, timerState.status, timerState.pausedRemainingSeconds]);
+
+  const pauseTimer = useCallback(() => {
+    if (timerState.status !== 'running' || !timerState.endTime) return;
+    
+    const remainingMs = Math.max(0, timerState.endTime - Date.now());
+    const pausedRemainingSeconds = Math.ceil(remainingMs / 1000);
+    
+    setTimerState(prev => ({
+      ...prev,
+      status: 'paused',
+      endTime: null,
+      pausedRemainingSeconds,
+    }));
+    setDisplayTime(pausedRemainingSeconds);
+  }, [timerState.status, timerState.endTime]);
+
+  const resumeTimer = startTimer;
+
+  const resetTimer = useCallback(() => {
+    const duration = getModeDurationSeconds(timerState.mode);
+    setTimerState(prev => ({
+      ...prev,
+      status: 'idle',
+      durationSeconds: duration,
+      endTime: null,
+      pausedRemainingSeconds: null,
+      notificationSent: false
+    }));
+    setDisplayTime(duration);
+  }, [timerState.mode, getModeDurationSeconds]);
+
+  const skipSession = useCallback(() => {
+    const state = timerStateRef.current;
+    if (state.mode === 'work') {
+      const nextSession = state.sessionNumber;
+      let nextMode: PomodoroMode = 'short_break';
+      let nextDuration = pomodoroSettings.shortBreakMinutes * 60;
+      if (nextSession >= 4) {
+        nextMode = 'long_break';
+        nextDuration = pomodoroSettings.longBreakMinutes * 60;
+      }
+      setTimerState(prev => ({ ...prev, status: 'idle', mode: nextMode, durationSeconds: nextDuration, endTime: null, pausedRemainingSeconds: null, notificationSent: false }));
+      setDisplayTime(nextDuration);
+    } else {
+      const nextSession = state.mode === 'short_break' && state.sessionNumber < 4 ? state.sessionNumber + 1 : 1;
+      const nextDuration = pomodoroSettings.workMinutes * 60;
+      setTimerState(prev => ({ ...prev, status: 'idle', mode: 'work', sessionNumber: nextSession, durationSeconds: nextDuration, endTime: null, pausedRemainingSeconds: null, notificationSent: false }));
+      setDisplayTime(nextDuration);
+    }
+  }, [pomodoroSettings]);
+
+  const changeMode = useCallback((newMode: PomodoroMode) => {
+    const duration = getModeDurationSeconds(newMode);
+    setTimerState(prev => ({
+      ...prev,
+      status: 'idle',
+      mode: newMode,
+      durationSeconds: duration,
+      endTime: null,
+      pausedRemainingSeconds: null,
+      notificationSent: false
+    }));
+    setDisplayTime(duration);
+  }, [getModeDurationSeconds]);
+
+  // Audio and Media Session
+  useEffect(() => {
+    if (timerState.status === 'running') silentAudioRef.current?.play().catch(() => {});
+    else silentAudioRef.current?.pause();
+  }, [timerState.status]);
+
+  const handlersRef = useRef({ startTimer, pauseTimer, skipSession });
+  useEffect(() => { handlersRef.current = { startTimer, pauseTimer, skipSession }; }, [startTimer, pauseTimer, skipSession]);
+
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => handlersRef.current.startTimer());
+      navigator.mediaSession.setActionHandler('pause', () => handlersRef.current.pauseTimer());
+      navigator.mediaSession.setActionHandler('nexttrack', () => handlersRef.current.skipSession());
+    }
+    return () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+        navigator.mediaSession.setActionHandler('nexttrack', null);
+      }
+    };
+  }, []);
+
+  // Update Document title
+  useEffect(() => {
+    const minutes = Math.floor(displayTime / 60);
+    const seconds = displayTime % 60;
+    const timeFormatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    const titleText = `${timeFormatted} - ${timerState.mode === 'work' ? 'Focus' : 'Break'}`;
+    document.title = timerState.status === 'running' ? titleText : 'My Routine';
+    
+    if ('mediaSession' in navigator && timerState.status === 'running') {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: titleText,
+        artist: activeTaskForTimer || 'Self Directed Focus',
+        album: 'Productivity Timer',
+        artwork: [
+          { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+    }
+  }, [displayTime, timerState.status, timerState.mode, activeTaskForTimer]);
+
   // Today's focus minutes
   const todayFocusMinutes = useMemo(() => {
     const startOfToday = new Date();
@@ -368,6 +711,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loadUserDefault,
         todayFocusMinutes,
         todayCompletedCount,
+        timerState,
+        displayTime,
+        startTimer,
+        pauseTimer,
+        resumeTimer,
+        resetTimer,
+        skipSession,
+        changeMode,
       }}
     >
       {children}

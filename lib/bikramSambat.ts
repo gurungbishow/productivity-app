@@ -78,7 +78,7 @@ export function getNepaliDate(date: Date = new Date()): NepaliDate {
 
     // Check if current date falls within this BS year
     const nextEntry = BS_CALENDAR_DATA[i + 1];
-    let nextBaisakh1Timestamp = nextEntry 
+    const nextBaisakh1Timestamp = nextEntry 
       ? new Date(nextEntry.baisakh1Gregorian[0], nextEntry.baisakh1Gregorian[1], nextEntry.baisakh1Gregorian[2]).getTime()
       : baisakh1Timestamp + 365 * 86400000;
 

@@ -8,8 +8,6 @@ import { triggerConfetti, formatDuration } from '@/lib/utils';
 import { getCategoryConfig } from '@/lib/categories';
 
 import { 
-  CheckCircle2, 
-  Circle, 
   Clock, 
   Plus, 
   Trash2, 
@@ -20,7 +18,6 @@ import {
   X,
   ChevronDown,
   Check,
-  Sparkles,
   Save,
   Folder
 } from 'lucide-react';
@@ -40,11 +37,7 @@ function buildTimeString(hour: number, minute: string, period: 'AM' | 'PM'): str
   return `${paddedHour}:${minute} ${period}`;
 }
 
-interface TimelineListProps {
-  onStartFocusTimer: (taskTitle: string) => void;
-}
-
-export function TimelineList({ onStartFocusTimer }: TimelineListProps) {
+export function TimelineList() {
   const {
     schedule,
     completedTaskIds,
@@ -52,7 +45,6 @@ export function TimelineList({ onStartFocusTimer }: TimelineListProps) {
     addScheduleItem,
     updateScheduleItem,
     deleteScheduleItem,
-    resetScheduleToDefault,
     userDefaultSchedule,
     saveAsUserDefault,
     loadUserDefault,

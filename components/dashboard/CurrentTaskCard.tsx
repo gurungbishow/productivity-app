@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { getScheduleStatus } from '@/lib/scheduleEngine';
 import { triggerConfetti } from '@/lib/utils';
-import { PomodoroMode } from '@/lib/types';
 
 import { 
   Play, 
@@ -12,34 +11,28 @@ import {
   RotateCcw,
   SkipForward,
   Clock, 
-  Sparkles,
-  Coffee,
   Check
 } from 'lucide-react';
 
-interface CurrentTaskCardProps {
-  onStartFocusTimer?: (taskTitle: string) => void;
-}
-
-export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
+export function CurrentTaskCard() {
   const { 
     schedule, 
     completedTaskIds, 
     toggleTaskCompleted,
     pomodoroSettings,
-    recordFocusSession,
+    timerState,
+    displayTime,
+    startTimer,
+    pauseTimer,
+    resumeTimer,
+    resetTimer,
+    skipSession,
+    changeMode,
+    setActiveTaskForTimer,
   } = useAppStore();
 
   const [scheduleStatus, setScheduleStatus] = useState(() => getScheduleStatus(schedule, new Date()));
   
-  // Pomodoro timer state
-  const [mode, setMode] = useState<PomodoroMode>('work');
-  const [currentSession, setCurrentSession] = useState<number>(1);
-  const [isRunning, setIsRunning] = useState(false);
-  const [timeLeftSeconds, setTimeLeftSeconds] = useState(pomodoroSettings.workMinutes * 60);
-
-  const targetEndTimeRef = useRef<number | null>(null);
-
   // Sync slot status every second
   useEffect(() => {
     const update = () => {
@@ -54,111 +47,21 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
   const activeTaskTitle = currentSlot?.title || 'Self Directed Focus';
   const isCompleted = currentSlot ? completedTaskIds.includes(currentSlot.id) : false;
 
-  const getModeDurationSeconds = useCallback(
-    (targetMode: PomodoroMode): number => {
-      switch (targetMode) {
-        case 'work':
-          return pomodoroSettings.workMinutes * 60;
-        case 'short_break':
-          return pomodoroSettings.shortBreakMinutes * 60;
-        case 'long_break':
-          return pomodoroSettings.longBreakMinutes * 60;
-      }
-    },
-    [pomodoroSettings]
-  );
-
-  // Reset duration when mode or duration settings change (not on pause)
+  // Sync active task title to global state for accurate focus logs
   useEffect(() => {
-    if (!isRunning) {
-      setTimeLeftSeconds(getModeDurationSeconds(mode));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, pomodoroSettings.workMinutes, pomodoroSettings.shortBreakMinutes, pomodoroSettings.longBreakMinutes]);
-
-  // Main countdown timer effect with drift protection
-  useEffect(() => {
-    if (!isRunning) return;
-
-    const targetEndTime = Date.now() + timeLeftSeconds * 1000;
-    targetEndTimeRef.current = targetEndTime;
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const diffSeconds = Math.max(0, Math.round((targetEndTime - now) / 1000));
-
-      setTimeLeftSeconds(diffSeconds);
-
-      if (diffSeconds <= 0) {
-        setIsRunning(false);
-        targetEndTimeRef.current = null;
-
-        if (mode === 'work') {
-          recordFocusSession(pomodoroSettings.workMinutes, 'work', activeTaskTitle);
-          triggerConfetti();
-
-          if (currentSession < 4) {
-            setMode('short_break');
-            setTimeLeftSeconds(pomodoroSettings.shortBreakMinutes * 60);
-          } else {
-            setMode('long_break');
-            setTimeLeftSeconds(pomodoroSettings.longBreakMinutes * 60);
-          }
-        } else if (mode === 'short_break') {
-          recordFocusSession(pomodoroSettings.shortBreakMinutes, mode, activeTaskTitle);
-          setCurrentSession((prev) => (prev < 4 ? prev + 1 : 1));
-          setMode('work');
-          setTimeLeftSeconds(pomodoroSettings.workMinutes * 60);
-        } else {
-          recordFocusSession(pomodoroSettings.longBreakMinutes, mode, activeTaskTitle);
-          setCurrentSession(1);
-          setMode('work');
-          setTimeLeftSeconds(pomodoroSettings.workMinutes * 60);
-        }
-      }
-    }, 250);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRunning]);
+    setActiveTaskForTimer(activeTaskTitle);
+  }, [activeTaskTitle, setActiveTaskForTimer]);
 
   const handleStartPause = () => {
-    setIsRunning((prev) => !prev);
-  };
-
-  const handleReset = () => {
-    setIsRunning(false);
-    targetEndTimeRef.current = null;
-    setTimeLeftSeconds(getModeDurationSeconds(mode));
-  };
-
-  const handleSkip = () => {
-    setIsRunning(false);
-    targetEndTimeRef.current = null;
-    if (mode === 'work') {
-      if (currentSession < 4) {
-        setMode('short_break');
-        setTimeLeftSeconds(pomodoroSettings.shortBreakMinutes * 60);
-      } else {
-        setMode('long_break');
-        setTimeLeftSeconds(pomodoroSettings.longBreakMinutes * 60);
-      }
-    } else if (mode === 'short_break') {
-      setCurrentSession((prev) => (prev < 4 ? prev + 1 : 1));
-      setMode('work');
-      setTimeLeftSeconds(pomodoroSettings.workMinutes * 60);
+    if (timerState.status === 'running') {
+      pauseTimer();
     } else {
-      setCurrentSession(1);
-      setMode('work');
-      setTimeLeftSeconds(pomodoroSettings.workMinutes * 60);
+      if (timerState.status === 'paused') {
+        resumeTimer();
+      } else {
+        startTimer();
+      }
     }
-  };
-
-  const handleModeChange = (newMode: PomodoroMode) => {
-    setIsRunning(false);
-    targetEndTimeRef.current = null;
-    setMode(newMode);
-    setTimeLeftSeconds(getModeDurationSeconds(newMode));
   };
 
   const handleToggleComplete = () => {
@@ -181,14 +84,14 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
   };
 
   // Timer math: reversed fill (ring starts empty at 25:00 and fills up clockwise as time elapses)
-  const totalDuration = getModeDurationSeconds(mode);
-  const elapsedSeconds = totalDuration - timeLeftSeconds;
+  const totalDuration = timerState.durationSeconds;
+  const elapsedSeconds = totalDuration - displayTime;
   const progressPercent = totalDuration > 0
     ? Math.min(100, Math.max(0, (elapsedSeconds / totalDuration) * 100))
     : 0;
 
-  const minutes = Math.floor(timeLeftSeconds / 60);
-  const seconds = timeLeftSeconds % 60;
+  const minutes = Math.floor(displayTime / 60);
+  const seconds = displayTime % 60;
   const timeFormatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
   const circleRadius = 68;
@@ -202,7 +105,7 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
   const strokeDashoffset = circumference - visibleDrawn;
 
   const getModeColor = () => {
-    switch (mode) {
+    switch (timerState.mode) {
       case 'work':
         return {
           stroke: '#818CF8',
@@ -284,15 +187,15 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
           {/* Focus Mode Button */}
           <div
             className={`rounded-xl transition-all duration-200 ${
-              mode === 'work'
+              timerState.mode === 'work'
                 ? 'p-[1.5px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_16px_rgba(99,102,241,0.35)]'
                 : 'p-[1.5px] bg-transparent'
             }`}
           >
             <button
-              onClick={() => handleModeChange('work')}
+              onClick={() => changeMode('work')}
               className={`w-full py-2 px-1 rounded-[10px] text-xs font-bold transition-all duration-150 active:scale-95 flex items-center justify-center ${
-                mode === 'work'
+                timerState.mode === 'work'
                   ? 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-inner'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
               }`}
@@ -304,15 +207,15 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
           {/* Break Mode Button */}
           <div
             className={`rounded-xl transition-all duration-200 ${
-              mode === 'short_break'
+              timerState.mode === 'short_break'
                 ? 'p-[1.5px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 shadow-[0_0_16px_rgba(52,211,153,0.35)]'
                 : 'p-[1.5px] bg-transparent'
             }`}
           >
             <button
-              onClick={() => handleModeChange('short_break')}
+              onClick={() => changeMode('short_break')}
               className={`w-full py-2 px-1 rounded-[10px] text-xs font-bold transition-all duration-150 active:scale-95 flex items-center justify-center ${
-                mode === 'short_break'
+                timerState.mode === 'short_break'
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-inner'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
               }`}
@@ -324,15 +227,15 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
           {/* Long Break Mode Button */}
           <div
             className={`rounded-xl transition-all duration-200 ${
-              mode === 'long_break'
+              timerState.mode === 'long_break'
                 ? 'p-[1.5px] bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 shadow-[0_0_16px_rgba(6,182,212,0.35)]'
                 : 'p-[1.5px] bg-transparent'
             }`}
           >
             <button
-              onClick={() => handleModeChange('long_break')}
+              onClick={() => changeMode('long_break')}
               className={`w-full py-2 px-1 rounded-[10px] text-xs font-bold transition-all duration-150 active:scale-95 flex items-center justify-center ${
-                mode === 'long_break'
+                timerState.mode === 'long_break'
                   ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-inner'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
               }`}
@@ -346,16 +249,16 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
         <div className="flex items-center justify-between px-3.5 py-1.5 rounded-[14px] bg-white/[0.03] border border-white/[0.06] backdrop-blur-md">
           <span className="text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
             <span className={`w-1.5 h-1.5 rounded-full ${
-              mode === 'work' ? 'bg-indigo-400 animate-pulse' : mode === 'short_break' ? 'bg-emerald-400' : 'bg-cyan-400'
+              timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400' : 'bg-cyan-400'
             }`} />
-            <span>Session {currentSession} of 4</span>
+            <span>Session {timerState.sessionNumber} of 4</span>
           </span>
 
           {/* 4 Visual Session Indicator Pills */}
           <div className="flex items-center gap-1.5">
             {[1, 2, 3, 4].map((step) => {
-              const isPast = step < currentSession;
-              const isCurrent = step === currentSession;
+              const isPast = step < timerState.sessionNumber;
+              const isCurrent = step === timerState.sessionNumber;
               return (
                 <div
                   key={step}
@@ -410,7 +313,7 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
                   strokeDasharray: `${circumference}px`,
                   strokeDashoffset: `${strokeDashoffset}px`,
                   filter: `drop-shadow(0 0 12px ${theme.glow})`,
-                  transition: isRunning ? 'stroke-dashoffset 0.95s linear' : 'stroke-dashoffset 0.35s ease-out'
+                  transition: timerState.status === 'running' ? 'stroke-dashoffset 0.95s linear' : 'stroke-dashoffset 0.35s ease-out'
                 }}
               />
             </svg>
@@ -418,13 +321,13 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
             {/* Inner Digital Readout */}
             <div className="absolute flex flex-col items-center justify-center text-center space-y-1 pointer-events-none select-none">
               <span className="text-[9.5px] font-black uppercase tracking-[0.2em] text-slate-400">
-                {mode === 'work' ? 'WORK SPRINT' : mode.replace('_', ' ')}
+                {timerState.mode === 'work' ? 'WORK SPRINT' : timerState.mode.replace('_', ' ')}
               </span>
               <span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
                 {timeFormatted}
               </span>
               <div className="text-[10.5px] font-semibold flex items-center justify-center gap-1.5 pt-0.5">
-                {isRunning ? (
+                {timerState.status === 'running' ? (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                     <span>Sprint Active</span>
@@ -443,7 +346,7 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
         <div className="flex items-center justify-center gap-3 sm:gap-4 pt-0">
           {/* Reset Timer Button - Warm Golden Amber Glow */}
           <button
-            onClick={handleReset}
+            onClick={resetTimer}
             title="Reset Timer"
             aria-label="Reset Timer"
             className="group relative w-12 h-12 flex items-center justify-center rounded-2xl bg-gradient-to-b from-amber-500/15 via-white/[0.04] to-black/60 border border-amber-400/40 shadow-[0_4px_20px_rgba(0,0,0,0.35),0_0_18px_rgba(251,191,36,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-90 active:border-amber-300 active:shadow-[0_0_25px_rgba(251,191,36,0.45)] transition-all duration-200 shrink-0"
@@ -454,9 +357,9 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
           {/* Start / Pause Core Button with Colorful Border */}
           <div
             className={`flex-1 max-w-[210px] sm:max-w-[230px] p-[1.5px] rounded-2xl transition-all duration-300 shrink-0 ${
-              mode === 'work'
+              timerState.mode === 'work'
                 ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_25px_rgba(99,102,241,0.45)]'
-                : mode === 'short_break'
+                : timerState.mode === 'short_break'
                 ? 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 shadow-[0_0_25px_rgba(52,211,153,0.45)]'
                 : 'bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 shadow-[0_0_25px_rgba(6,182,212,0.45)]'
             }`}
@@ -464,14 +367,14 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
             <button
               onClick={handleStartPause}
               className={`w-full h-12 flex items-center justify-center gap-2 px-5 rounded-[14px] text-white font-black text-sm tracking-wide active:scale-95 transition-all shadow-inner ${
-                mode === 'work'
+                timerState.mode === 'work'
                   ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:opacity-95'
-                  : mode === 'short_break'
+                  : timerState.mode === 'short_break'
                   ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:opacity-95'
                   : 'bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 hover:opacity-95'
               }`}
             >
-              {isRunning ? (
+              {timerState.status === 'running' ? (
                 <>
                   <Pause className="w-4 h-4 fill-white" />
                   <span>Pause</span>
@@ -479,7 +382,7 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-white" />
-                  <span>Start {mode === 'work' ? 'Focus' : 'Break'}</span>
+                  <span>{timerState.status === 'paused' ? 'Resume' : 'Start'} {timerState.mode === 'work' ? 'Focus' : 'Break'}</span>
                 </>
               )}
             </button>
@@ -487,7 +390,7 @@ export function CurrentTaskCard({ onStartFocusTimer }: CurrentTaskCardProps) {
 
           {/* Skip to Next Session Button - Electric Cyan Glow */}
           <button
-            onClick={handleSkip}
+            onClick={skipSession}
             title="Skip to next session"
             aria-label="Skip to next session"
             className="group relative w-12 h-12 flex items-center justify-center rounded-2xl bg-gradient-to-b from-cyan-500/15 via-white/[0.04] to-black/60 border border-cyan-400/40 shadow-[0_4px_20px_rgba(0,0,0,0.35),0_0_18px_rgba(34,211,238,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-90 active:border-cyan-300 active:shadow-[0_0_25px_rgba(34,211,238,0.45)] transition-all duration-200 shrink-0"

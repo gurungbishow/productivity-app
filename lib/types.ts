@@ -65,3 +65,13 @@ export interface UserProfile {
   streak: number;
   lastActiveDate: string;
 }
+
+export interface GlobalPomodoroState {
+  status: 'idle' | 'running' | 'paused';
+  mode: PomodoroMode;
+  durationSeconds: number;
+  endTime: number | null;
+  pausedRemainingSeconds: number | null;
+  sessionNumber: number;
+  notificationSent: boolean;
+}

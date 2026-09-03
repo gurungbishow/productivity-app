@@ -17,9 +17,6 @@ import { Loader2 } from 'lucide-react';
 function MobileAppContent() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'schedule' | 'settings'>('dashboard');
 
-  const handleStartFocusTimer = () => {
-    setActiveTab('dashboard');
-  };
 
   return (
     <div className="min-h-screen bg-[#05070B] flex justify-center selection:bg-indigo-500 selection:text-white">
@@ -33,7 +30,7 @@ function MobileAppContent() {
         <div className="absolute bottom-36 left-10 w-72 h-72 bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Sticky Mobile Top App Bar */}
-        <MobileHeader />
+        <MobileHeader onTimerClick={() => setActiveTab('dashboard')} />
 
         {/* Scrollable Main Mobile Content */}
         <main className="flex-1 px-4 py-4 pb-28 space-y-5 overflow-y-auto">
@@ -43,7 +40,7 @@ function MobileAppContent() {
             <div className="space-y-4 animate-in fade-in duration-200">
 
               {/* Active Task (Now with Integrated Pomodoro) */}
-              <CurrentTaskCard onStartFocusTimer={handleStartFocusTimer} />
+              <CurrentTaskCard />
 
               {/* Up Next Card */}
               <UpNextCard onViewSchedule={() => setActiveTab('schedule')} />
@@ -56,7 +53,7 @@ function MobileAppContent() {
           {/* TAB 2: TIMETABLE SCHEDULE */}
           {activeTab === 'schedule' && (
             <div className="animate-in fade-in duration-200">
-              <TimelineList onStartFocusTimer={handleStartFocusTimer} />
+              <TimelineList />
             </div>
           )}
 

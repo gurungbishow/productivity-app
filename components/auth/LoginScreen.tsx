@@ -74,8 +74,8 @@ export function LoginScreen() {
           updateProfile({ name: data.user.user_metadata.full_name });
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication.');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'An error occurred during authentication.');
     } finally {
       setIsLoading(false);
     }

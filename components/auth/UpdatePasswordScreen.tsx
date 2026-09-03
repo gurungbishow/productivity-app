@@ -28,8 +28,8 @@ export function UpdatePasswordScreen() {
 
       if (error) throw error;
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update password.');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to update password.');
     } finally {
       setIsLoading(false);
     }

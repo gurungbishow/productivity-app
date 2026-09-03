@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!supabase) {
-      setIsLoadingAuth(false);
+      setTimeout(() => setIsLoadingAuth(false), 0);
       return;
     }
 

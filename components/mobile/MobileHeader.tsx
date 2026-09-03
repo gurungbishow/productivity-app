@@ -7,20 +7,22 @@ import {
   Sun, 
   Moon, 
   Sunrise, 
-  Sunset,
-  Cloud 
+  Sunset
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 
-export function MobileHeader() {
-  const { profile } = useAppStore();
-  const { user } = useAuth();
+export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
+  const { profile, timerState, displayTime } = useAppStore();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
-    setCurrentTime(new Date());
+    // Use a short timeout for the initial set to avoid synchronous set-state-in-effect warning
+    const initTimer = setTimeout(() => setCurrentTime(new Date()), 0);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(initTimer);
+      clearInterval(timer);
+    };
   }, []);
 
   const now = currentTime || new Date();
@@ -91,6 +93,11 @@ export function MobileHeader() {
 
   const userName = profile?.name || 'Bishow';
 
+  const showTimerBadge = timerState.status === 'running' || timerState.status === 'paused';
+  const minutes = Math.floor(displayTime / 60);
+  const seconds = displayTime % 60;
+  const badgeTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
   return (
     <header className="sticky top-0 z-40 w-full bg-[#070A12]/80 backdrop-blur-2xl border-b border-white/[0.08] px-4 py-2 sm:py-2.5 shadow-[0_4px_30px_rgba(0,0,0,0.6)] relative space-y-1.5">
       {/* Subtle top ambient sheen */}
@@ -116,8 +123,29 @@ export function MobileHeader() {
           </div>
         </div>
 
-        {/* Right: Cloud Status Pill */}
-        <div className="shrink-0">
+        {/* Right: Timer Badge & Cloud Status Pill */}
+        <div className="shrink-0 flex items-center gap-2">
+          {showTimerBadge && (
+            <button 
+              onClick={onTimerClick}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-md active:scale-95 transition-all ${
+                timerState.mode === 'work' 
+                  ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]' 
+                  : timerState.mode === 'short_break'
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                  : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                timerState.status === 'running'
+                  ? timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400 animate-pulse'
+                  : 'bg-slate-400'
+              }`} />
+              <span className="text-[11px] font-black font-mono tracking-wider">
+                {badgeTime}
+              </span>
+            </button>
+          )}
           <span className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase tracking-wider font-black shadow-[0_0_15px_rgba(16,185,129,0.15)]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
             Cloud
