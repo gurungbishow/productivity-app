@@ -115,8 +115,8 @@ export const DEFAULT_SCHEDULE: ScheduleItem[] = [
   },
   {
     id: 'slot-5',
-    title: 'Breakfast & Refreshment',
-    description: 'Healthy meal, tea/coffee, rest eyes, and prepare energy for evening deep work',
+    title: 'Refreshment & Break',
+    description: 'Healthy meal, tea/coffee, rest eyes, and prepare energy for evening deep work.',
     startTime: '3:30 PM',
     endTime: '4:00 PM',
     startMinutes: parseTimeToMinutes('3:30 PM'),
@@ -127,7 +127,7 @@ export const DEFAULT_SCHEDULE: ScheduleItem[] = [
   {
     id: 'slot-6',
     title: 'AI / ML Deep Work',
-    description: 'Machine Learning models, Python, Neural Networks, research papers, and Kaggle/building projects',
+    description: 'Machine Learning models, Python, Neural Networks, research papers, and Kaggle/building projects.',
     startTime: '4:00 PM',
     endTime: '7:00 PM',
     startMinutes: parseTimeToMinutes('4:00 PM'),
@@ -137,46 +137,24 @@ export const DEFAULT_SCHEDULE: ScheduleItem[] = [
   },
   {
     id: 'slot-7',
-    title: 'Dinner',
-    description: 'Nutritious dinner, relaxation with family/friends, mindful eating without screens',
+    title: 'Dinner Book Reading',
+    description: 'Nutritious dinner, relaxation with family/friends, Data Science Book.',
     startTime: '7:00 PM',
-    endTime: '8:00 PM',
+    endTime: '9:30 PM',
     startMinutes: parseTimeToMinutes('7:00 PM'),
-    endMinutes: parseTimeToMinutes('8:00 PM'),
+    endMinutes: parseTimeToMinutes('9:30 PM'),
     category: 'health_fitness',
     isDefault: true,
   },
   {
     id: 'slot-8',
-    title: 'Book Reading',
-    description: 'Non-fiction, philosophy, self-development, or biography reading before sleep',
-    startTime: '8:00 PM',
-    endTime: '9:30 PM',
-    startMinutes: parseTimeToMinutes('8:00 PM'),
-    endMinutes: parseTimeToMinutes('9:30 PM'),
-    category: 'growth_creative',
-    isDefault: true,
-  },
-  {
-    id: 'slot-9',
     title: 'Evening Affirmation & Wind Down',
-    description: 'Reflect on today\'s achievements, gratitude journal, plan tomorrow, digital detox',
+    description: 'Reflect on today\'s achievements, gratitude journal, plan tomorrow, Restorative uninterrupted sleep, muscle recovery, memory consolidation.',
     startTime: '9:30 PM',
-    endTime: '10:00 PM',
-    startMinutes: parseTimeToMinutes('9:30 PM'),
-    endMinutes: parseTimeToMinutes('10:00 PM'),
-    category: 'mindfulness',
-    isDefault: true,
-  },
-  {
-    id: 'slot-10',
-    title: 'Deep Sleep',
-    description: 'Restorative uninterrupted sleep, muscle recovery, memory consolidation',
-    startTime: '10:00 PM',
     endTime: '5:30 AM',
-    startMinutes: parseTimeToMinutes('10:00 PM'),
+    startMinutes: parseTimeToMinutes('9:30 PM'),
     endMinutes: parseTimeToMinutes('5:30 AM'),
-    category: 'health_fitness',
+    category: 'mindfulness',
     isDefault: true,
   },
 ];
@@ -194,7 +172,7 @@ export function isSlotActive(item: ScheduleItem, currentMinutes: number): boolea
   if (item.startMinutes <= item.endMinutes) {
     return currentMinutes >= item.startMinutes && currentMinutes < item.endMinutes;
   }
-  // Crosses midnight (e.g. 22:00 to 05:30 -> 1320 to 330)
+  // Crosses midnight (e.g. 21:30 to 05:30 -> 1290 to 330)
   return currentMinutes >= item.startMinutes || currentMinutes < item.endMinutes;
 }
 
