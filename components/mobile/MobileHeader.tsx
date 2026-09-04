@@ -44,7 +44,9 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
     ring: 'from-amber-500/60 via-orange-500/40 to-yellow-400/50',
     glow: 'shadow-[0_0_16px_rgba(245,158,11,0.25)]',
     iconColor: 'text-amber-400',
-    badgeBg: 'bg-amber-500/10 text-amber-300 border-amber-500/25',
+    dotBg: 'bg-amber-400',
+    dotGlow: 'shadow-[0_0_8px_rgba(245,158,11,0.8)]',
+    badgeBg: 'bg-amber-500/10 border-amber-500/25',
     textGradient: 'from-amber-200 via-orange-200 to-yellow-300',
   };
 
@@ -55,7 +57,9 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
       ring: 'from-amber-500/60 via-orange-500/40 to-yellow-400/50',
       glow: 'shadow-[0_0_16px_rgba(245,158,11,0.25)]',
       iconColor: 'text-amber-400',
-      badgeBg: 'bg-amber-500/10 text-amber-300 border-amber-500/25',
+      dotBg: 'bg-amber-400',
+      dotGlow: 'shadow-[0_0_8px_rgba(245,158,11,0.8)]',
+      badgeBg: 'bg-amber-500/10 border-amber-500/25',
       textGradient: 'from-amber-200 via-orange-200 to-yellow-300',
     };
   } else if (hours >= 12 && hours < 17) {
@@ -65,7 +69,9 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
       ring: 'from-sky-500/60 via-indigo-500/40 to-amber-400/50',
       glow: 'shadow-[0_0_16px_rgba(14,165,233,0.25)]',
       iconColor: 'text-sky-400',
-      badgeBg: 'bg-sky-500/10 text-sky-300 border-sky-500/25',
+      dotBg: 'bg-sky-400',
+      dotGlow: 'shadow-[0_0_8px_rgba(14,165,233,0.8)]',
+      badgeBg: 'bg-sky-500/10 border-sky-500/25',
       textGradient: 'from-white via-sky-200 to-amber-200',
     };
   } else if (hours >= 17 && hours < 21) {
@@ -75,7 +81,9 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
       ring: 'from-indigo-500/70 via-purple-500/50 to-rose-400/50',
       glow: 'shadow-[0_0_18px_rgba(139,92,246,0.3)]',
       iconColor: 'text-purple-300',
-      badgeBg: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+      dotBg: 'bg-purple-400',
+      dotGlow: 'shadow-[0_0_8px_rgba(168,85,247,0.8)]',
+      badgeBg: 'bg-indigo-500/15 border-indigo-500/30',
       textGradient: 'from-purple-200 via-pink-200 to-rose-300',
     };
   } else {
@@ -85,7 +93,9 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
       ring: 'from-indigo-500/60 via-blue-500/40 to-purple-500/50',
       glow: 'shadow-[0_0_16px_rgba(99,102,241,0.25)]',
       iconColor: 'text-indigo-300',
-      badgeBg: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/25',
+      dotBg: 'bg-indigo-400',
+      dotGlow: 'shadow-[0_0_8px_rgba(99,102,241,0.8)]',
+      badgeBg: 'bg-indigo-500/10 border-indigo-500/25',
       textGradient: 'from-cyan-300 via-indigo-300 to-pink-400',
     };
   }
@@ -122,11 +132,13 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
           </div>
         </div>
 
-        {/* Right: Cloud Status Pill (permanently pinned to top) & Timer Badge below */}
+        {/* Right: Cloud Status Pill (matching Greeting theme) & Timer Badge below */}
         <div className="shrink-0 flex flex-col items-end gap-1">
-          <span className="flex items-center gap-1.5 px-2 py-0.5 sm:py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase tracking-wider font-black shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-            Cloud
+          <span className={`flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full ${iconTheme.badgeBg} border text-[10px] uppercase tracking-wider font-black ${iconTheme.glow}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${iconTheme.dotBg} animate-pulse ${iconTheme.dotGlow}`} />
+            <span className={`bg-gradient-to-r ${iconTheme.textGradient} bg-clip-text text-transparent font-black`}>
+              Cloud
+            </span>
           </span>
           {showTimerBadge && (
             <button 
