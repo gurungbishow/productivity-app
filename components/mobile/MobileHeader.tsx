@@ -113,7 +113,7 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
       <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 via-indigo-500/40 to-transparent pointer-events-none" />
 
       {/* Top Row: Left (Greeting with Avatar emblem) & Right (Cloud Status) */}
-      <div className="flex items-start justify-between gap-2.5 min-h-[42px] sm:min-h-[46px]">
+      <div className="flex items-center justify-between gap-2.5 h-[50px]">
         {/* Left: Emblem + Greeting with Vibrant Gradient */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr ${iconTheme.ring} p-[1px] ${iconTheme.glow} shrink-0 transition-all duration-300`}>
@@ -132,35 +132,38 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
           </div>
         </div>
 
-        {/* Right: Cloud Status Pill (matching Greeting theme) & Timer Badge below */}
-        <div className="shrink-0 flex flex-col items-end gap-1">
-          <span className={`flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full ${iconTheme.badgeBg} border text-[10px] uppercase tracking-wider font-black ${iconTheme.glow}`}>
+        {/* Right: Cloud Status Pill (pinned to top) & Reserved Timer Badge slot below */}
+        <div className="shrink-0 flex flex-col items-end justify-between h-[46px]">
+          <span className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full ${iconTheme.badgeBg} border text-[10px] uppercase tracking-wider font-black ${iconTheme.glow}`}>
             <span className={`w-1.5 h-1.5 rounded-full ${iconTheme.dotBg} animate-pulse ${iconTheme.dotGlow}`} />
             <span className={`bg-gradient-to-r ${iconTheme.textGradient} bg-clip-text text-transparent font-black`}>
               Cloud
             </span>
           </span>
-          {showTimerBadge && (
-            <button 
-              onClick={onTimerClick}
-              className={`animate-in fade-in slide-in-from-top-1 duration-200 flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full border shadow-md active:scale-95 transition-all ${
-                timerState.mode === 'work' 
-                  ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]' 
-                  : timerState.mode === 'short_break'
-                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                  : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${
-                timerState.status === 'running'
-                  ? timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400 animate-pulse'
-                  : 'bg-slate-400'
-              }`} />
-              <span className="text-[11px] font-black font-mono tracking-wider">
-                {badgeTime}
-              </span>
-            </button>
-          )}
+
+          <div className="h-[21px] flex items-center justify-end">
+            {showTimerBadge && (
+              <button 
+                onClick={onTimerClick}
+                className={`animate-in fade-in duration-200 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shadow-md active:scale-95 transition-all ${
+                  timerState.mode === 'work' 
+                    ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]' 
+                    : timerState.mode === 'short_break'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                    : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  timerState.status === 'running'
+                    ? timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400 animate-pulse'
+                    : 'bg-slate-400'
+                }`} />
+                <span className="text-[11px] font-black font-mono tracking-wider">
+                  {badgeTime}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
