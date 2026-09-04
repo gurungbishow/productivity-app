@@ -153,7 +153,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             streak = 1;
           }
         }
-        setProfile({ ...parsed, streak, lastActiveDate: today });
+        setProfile({
+          ...DEFAULT_PROFILE,
+          ...parsed,
+          dailyFocusGoalMinutes:
+            typeof parsed.dailyFocusGoalMinutes === 'number' && parsed.dailyFocusGoalMinutes > 0
+              ? parsed.dailyFocusGoalMinutes
+              : DEFAULT_PROFILE.dailyFocusGoalMinutes,
+          streak,
+          lastActiveDate: today,
+        });
       } else {
         setProfile({ ...DEFAULT_PROFILE, lastActiveDate: today });
       }
@@ -454,7 +463,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isHydratingFromRemoteRef.current = true;
 
         if (cloudData.profile && cloudData.profile.name) {
-          setProfile(prev => ({ ...prev, ...cloudData.profile }));
+          setProfile(prev => ({
+            ...prev,
+            ...cloudData.profile,
+            dailyFocusGoalMinutes:
+              typeof cloudData.profile.dailyFocusGoalMinutes === 'number' && cloudData.profile.dailyFocusGoalMinutes > 0
+                ? cloudData.profile.dailyFocusGoalMinutes
+                : (prev.dailyFocusGoalMinutes || DEFAULT_PROFILE.dailyFocusGoalMinutes),
+          }));
         }
         if (Array.isArray(cloudData.schedule)) {
           setSchedule(sortScheduleAscending(cloudData.schedule));
@@ -515,7 +531,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setUserDefaultSchedule(sortScheduleAscending(remoteData.user_default_schedule));
       }
       if (remoteData.profile && remoteData.profile.name) {
-        setProfile(prev => ({ ...prev, ...remoteData.profile }));
+        setProfile(prev => ({
+          ...prev,
+          ...remoteData.profile,
+          dailyFocusGoalMinutes:
+            typeof remoteData.profile.dailyFocusGoalMinutes === 'number' && remoteData.profile.dailyFocusGoalMinutes > 0
+              ? remoteData.profile.dailyFocusGoalMinutes
+              : (prev.dailyFocusGoalMinutes || DEFAULT_PROFILE.dailyFocusGoalMinutes),
+        }));
       }
       if (remoteData.completed_tasks && remoteData.completed_tasks.date === getTodayString()) {
         setCompletedTaskIds(remoteData.completed_tasks.ids || []);
@@ -601,7 +624,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               isHydratingFromRemoteRef.current = true;
               if (Array.isArray(res.data.schedule)) setSchedule(sortScheduleAscending(res.data.schedule));
               if (Array.isArray(res.data.user_default_schedule)) setUserDefaultSchedule(sortScheduleAscending(res.data.user_default_schedule));
-              if (res.data.profile) setProfile((prev) => ({ ...prev, ...res.data!.profile }));
+              if (res.data.profile) {
+                setProfile((prev) => ({
+                  ...prev,
+                  ...res.data!.profile,
+                  dailyFocusGoalMinutes:
+                    typeof res.data!.profile.dailyFocusGoalMinutes === 'number' && res.data!.profile.dailyFocusGoalMinutes > 0
+                      ? res.data!.profile.dailyFocusGoalMinutes
+                      : (prev.dailyFocusGoalMinutes || DEFAULT_PROFILE.dailyFocusGoalMinutes),
+                }));
+              }
               if (res.data.completed_tasks && res.data.completed_tasks.date === getTodayString()) {
                 setCompletedTaskIds(res.data.completed_tasks.ids || []);
               }
@@ -663,7 +695,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isHydratingFromRemoteRef.current = true;
       if (Array.isArray(res.data.schedule)) setSchedule(sortScheduleAscending(res.data.schedule));
       if (Array.isArray(res.data.user_default_schedule)) setUserDefaultSchedule(sortScheduleAscending(res.data.user_default_schedule));
-      if (res.data.profile && res.data.profile.name) setProfile((prev) => ({ ...prev, ...res.data!.profile }));
+      if (res.data.profile && res.data.profile.name) {
+        setProfile((prev) => ({
+          ...prev,
+          ...res.data!.profile,
+          dailyFocusGoalMinutes:
+            typeof res.data!.profile.dailyFocusGoalMinutes === 'number' && res.data!.profile.dailyFocusGoalMinutes > 0
+              ? res.data!.profile.dailyFocusGoalMinutes
+              : (prev.dailyFocusGoalMinutes || DEFAULT_PROFILE.dailyFocusGoalMinutes),
+        }));
+      }
       if (res.data.completed_tasks && res.data.completed_tasks.date === getTodayString()) {
         setCompletedTaskIds(res.data.completed_tasks.ids || []);
       }

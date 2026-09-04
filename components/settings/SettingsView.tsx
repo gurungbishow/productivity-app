@@ -11,28 +11,20 @@ import {
   Coffee,
   Moon,
   Target,
+  Minus,
+  Plus,
   X,
   LogOut,
   Bell,
   Volume2,
   VolumeX,
   Play,
-  Zap,
-  Cloud,
-  RefreshCw,
-  UploadCloud,
-  DownloadCloud,
-  Database,
-  Copy,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink
+  Zap
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { supabase } from '@/lib/supabase';
 import { playTimerEndSound } from '@/lib/utils';
 import { PomodoroSoundType } from '@/lib/types';
-import { SQL_SCHEMA_SCRIPT } from '@/lib/syncService';
 
 export function SettingsView() {
   const {
@@ -41,12 +33,6 @@ export function SettingsView() {
     profile,
     updateProfile,
     clearSchedule,
-    syncStatus,
-    lastSyncedAt,
-    syncError,
-    syncNow,
-    uploadToCloud,
-    downloadFromCloud,
   } = useAppStore();
 
   const { user } = useAuth();
@@ -54,80 +40,10 @@ export function SettingsView() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
-  const [isSyncingManual, setIsSyncingManual] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [copiedSql, setCopiedSql] = useState(false);
-  const [showSqlSetup, setShowSqlSetup] = useState(syncStatus === 'table_missing');
 
   const showNotification = (msg: string) => {
     setSavedMessage(msg);
     setTimeout(() => setSavedMessage(null), 2500);
-  };
-
-  const handleManualSync = async () => {
-    setIsSyncingManual(true);
-    try {
-      await syncNow();
-      showNotification('Sync complete');
-    } catch {
-      showNotification('Sync failed');
-    } finally {
-      setIsSyncingManual(false);
-    }
-  };
-
-  const handleUploadToCloud = async () => {
-    setIsUploading(true);
-    try {
-      const success = await uploadToCloud();
-      if (success) {
-        showNotification('Local routine pushed to cloud');
-      } else {
-        showNotification('Failed to push to cloud');
-      }
-    } catch {
-      showNotification('Upload error');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleRestoreFromCloud = async () => {
-    setIsDownloading(true);
-    try {
-      const success = await downloadFromCloud();
-      if (success) {
-        showNotification('Data restored from cloud');
-      } else {
-        showNotification('Could not find remote data to restore');
-      }
-    } catch {
-      showNotification('Download error');
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleCopySql = async () => {
-    try {
-      await navigator.clipboard.writeText(SQL_SCHEMA_SCRIPT);
-      setCopiedSql(true);
-      showNotification('SQL Schema copied to clipboard');
-      setTimeout(() => setCopiedSql(false), 2500);
-    } catch {
-      showNotification('Failed to copy SQL');
-    }
-  };
-
-  const formatLastSync = (isoString: string | null) => {
-    if (!isoString) return 'Not synced yet';
-    try {
-      const d = new Date(isoString);
-      return `Today at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    } catch {
-      return 'Recently';
-    }
   };
 
   const handlePomodoroChange = (key: 'workMinutes' | 'shortBreakMinutes' | 'longBreakMinutes', val: number) => {
@@ -174,10 +90,65 @@ export function SettingsView() {
     showNotification('Profile updated');
   };
 
-  const handleFocusGoalChange = (minutes: number) => {
-    updateProfile({ dailyFocusGoalMinutes: minutes });
-    showNotification(`Daily target set to ${minutes / 60} hours`);
+  const currentGoalHours = (profile?.dailyFocusGoalMinutes && profile.dailyFocusGoalMinutes > 0)
+    ? profile.dailyFocusGoalMinutes / 60
+    : 4;
+
+  const [prevGoalHours, setPrevGoalHours] = useState(currentGoalHours);
+  const [goalHoursInput, setGoalHoursInput] = useState<string>(() => String(currentGoalHours));
+
+  if (prevGoalHours !== currentGoalHours) {
+    setPrevGoalHours(currentGoalHours);
+    setGoalHoursInput(String(currentGoalHours));
+  }
+
+  const applyFocusGoal = (hours: number, notify = true) => {
+    const clamped = Math.min(24, Math.max(0.5, Math.round(hours * 2) / 2));
+    updateProfile({ dailyFocusGoalMinutes: Math.round(clamped * 60) });
+    setGoalHoursInput(String(clamped));
+    if (notify) {
+      showNotification(`Daily target set to ${clamped} ${clamped === 1 ? 'hour' : 'hours'}`);
+    }
   };
+
+  const handleDecrementFocusGoal = () => {
+    const next = Math.max(0.5, currentGoalHours - 0.5);
+    applyFocusGoal(next, true);
+  };
+
+  const handleIncrementFocusGoal = () => {
+    const next = Math.min(24, currentGoalHours + 0.5);
+    applyFocusGoal(next, true);
+  };
+
+  const handleFocusGoalInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setGoalHoursInput(val);
+    const parsed = parseFloat(val);
+    if (!isNaN(parsed) && parsed >= 0.5 && parsed <= 24) {
+      updateProfile({ dailyFocusGoalMinutes: Math.round(parsed * 60) });
+    }
+  };
+
+  const handleFocusGoalInputBlur = () => {
+    const parsed = parseFloat(goalHoursInput);
+    if (isNaN(parsed) || parsed < 0.5) {
+      const fallback = Math.max(0.5, currentGoalHours || 4);
+      setGoalHoursInput(String(fallback));
+      applyFocusGoal(fallback, false);
+    } else {
+      const clamped = Math.min(24, Math.max(0.5, Math.round(parsed * 10) / 10));
+      applyFocusGoal(clamped, true);
+    }
+  };
+
+  const handleFocusGoalInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  const focusGoalPresets = [1, 2, 3, 4, 5, 6, 8];
 
   const handleClearSchedule = () => {
     clearSchedule();
@@ -600,32 +571,83 @@ export function SettingsView() {
           </div>
 
           {/* Daily Focus Goal Row */}
-          <div className="flex items-center justify-between py-3.5 gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Target className="w-3.5 h-3.5 text-amber-400 stroke-[2.2]" />
-                <span className="text-xs font-bold text-slate-200">Daily Focus Target</span>
+          <div className="py-3.5 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Target className="w-3.5 h-3.5 text-amber-400 stroke-[2.2]" />
+                  <span className="text-xs font-bold text-slate-200">Daily Focus Target</span>
+                </div>
+                <p className="text-[11px] text-slate-400">Target work sprint hours per day</p>
               </div>
-              <p className="text-[11px] text-slate-400">Target work sprint hours per day</p>
+
+              {/* Stepper with - / + and direct editable input */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center bg-[#080C18]/90 border border-white/[0.14] rounded-xl p-1 shadow-inner focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/25 transition-all">
+                  <button
+                    type="button"
+                    onClick={handleDecrementFocusGoal}
+                    disabled={currentGoalHours <= 0.5}
+                    aria-label="Decrease focus target"
+                    className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-amber-500/20 active:scale-90 disabled:opacity-25 disabled:pointer-events-none flex items-center justify-center text-slate-300 hover:text-amber-300 transition-all cursor-pointer"
+                  >
+                    <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={goalHoursInput}
+                    onChange={handleFocusGoalInputChange}
+                    onBlur={handleFocusGoalInputBlur}
+                    onKeyDown={handleFocusGoalInputKeyDown}
+                    className="w-10 text-center text-xs font-mono font-bold text-white bg-transparent outline-none"
+                    placeholder="4"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleIncrementFocusGoal}
+                    disabled={currentGoalHours >= 24}
+                    aria-label="Increase focus target"
+                    className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-amber-500/20 active:scale-90 disabled:opacity-25 disabled:pointer-events-none flex items-center justify-center text-slate-300 hover:text-amber-300 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  </button>
+                </div>
+                <span className="text-xs font-bold text-slate-400">hours</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0.5"
-                max="24"
-                step="0.5"
-                value={profile.dailyFocusGoalMinutes / 60}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  if (!isNaN(val) && val > 0) {
-                    handleFocusGoalChange(val * 60);
-                  }
-                }}
-                className="w-16 rounded-xl bg-[#080C18]/90 border border-white/[0.14] focus:border-amber-400 focus:ring-2 focus:ring-amber-400/25 px-2 py-1.5 text-xs font-bold text-center text-white shadow-inner outline-none transition-all"
-              />
-              <span className="text-xs font-bold text-slate-400">hours</span>
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {focusGoalPresets.map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => applyFocusGoal(val, true)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 cursor-pointer ${
+                    currentGoalHours === val
+                      ? 'bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-500 text-white shadow-[0_0_14px_rgba(245,158,11,0.6)] border border-amber-300/60 font-black'
+                      : 'bg-white/[0.04] border border-white/[0.08] hover:border-amber-400/30 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {val}h
+                </button>
+              ))}
             </div>
+
+            {/* Range slider for fluid adjustment */}
+            <input
+              type="range"
+              min="0.5"
+              max="16"
+              step="0.5"
+              value={currentGoalHours}
+              onChange={(e) => applyFocusGoal(parseFloat(e.target.value), false)}
+              style={{
+                background: `linear-gradient(to right, #f59e0b ${Math.min(100, Math.max(0, ((currentGoalHours - 0.5) / (16 - 0.5)) * 100))}%, rgba(255,255,255,0.08) ${Math.min(100, Math.max(0, ((currentGoalHours - 0.5) / (16 - 0.5)) * 100))}%)`
+              }}
+              className="w-full cursor-pointer h-2 rounded-full appearance-none outline-none accent-amber-400 shadow-inner"
+            />
           </div>
 
 
@@ -678,180 +700,6 @@ export function SettingsView() {
         </div>
       </div>
 
-      {/* SECTION 3: CLOUD SYNCHRONIZATION & DATABASE */}
-      <div className={`relative overflow-hidden rounded-3xl border transition-all duration-300 ${
-        syncStatus === 'table_missing' 
-          ? 'border-amber-500/40 bg-gradient-to-br from-amber-950/20 via-[#0D1322]/95 to-[#0A0E18]/98 shadow-[0_0_30px_rgba(245,158,11,0.15)]' 
-          : 'border-white/[0.12] bg-gradient-to-br from-[#12192B]/95 via-[#0D1322]/95 to-[#0A0E18]/98'
-      } backdrop-blur-2xl p-5 sm:p-6 shadow-[0_15px_35px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] space-y-4`}>
-
-        {/* Top Aurora Sheen Line */}
-        <div className={`absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${
-          syncStatus === 'table_missing' ? 'via-amber-400/70' : 'via-cyan-400/60'
-        } to-transparent pointer-events-none`} />
-
-        {/* Ambient Corner Light Glow */}
-        <div className={`absolute -top-12 -right-12 w-44 h-44 ${
-          syncStatus === 'table_missing' ? 'bg-amber-500/10' : 'bg-cyan-500/10'
-        } rounded-full blur-3xl pointer-events-none`} />
-
-        {/* Section Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500/25 to-indigo-500/35 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_14px_rgba(6,182,212,0.35)] shrink-0">
-              <Cloud className="w-4.5 h-4.5 text-cyan-300 stroke-[2.2]" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-white tracking-tight leading-tight">Cloud Sync & Database</h3>
-              <p className="text-[11px] text-slate-400 font-medium">Cross-device routines backed by Supabase</p>
-            </div>
-          </div>
-
-          {/* Quick Sync Button */}
-          <button
-            onClick={handleManualSync}
-            disabled={isSyncingManual || syncStatus === 'table_missing'}
-            className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-xs font-bold text-slate-200 hover:text-white flex items-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
-            title="Trigger instant sync"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${isSyncingManual ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{isSyncingManual ? 'Syncing...' : 'Sync Now'}</span>
-          </button>
-        </div>
-
-        {/* Status Card */}
-        <div className="p-4 rounded-2xl bg-[#080C18]/80 border border-white/[0.08] space-y-2.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${
-                syncStatus === 'synced' ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' :
-                syncStatus === 'syncing' ? 'bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)] animate-pulse' :
-                syncStatus === 'table_missing' ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)] animate-pulse' :
-                syncStatus === 'error' ? 'bg-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.8)]' :
-                'bg-slate-500'
-              }`} />
-              <span className="text-xs font-extrabold text-white">
-                {syncStatus === 'synced' && 'Cloud Synchronized'}
-                {syncStatus === 'syncing' && 'Syncing in Progress...'}
-                {syncStatus === 'table_missing' && 'Database Table Setup Required'}
-                {syncStatus === 'error' && 'Sync Error'}
-                {syncStatus === 'local_only' && 'Local Offline Mode'}
-                {syncStatus === 'idle' && 'Ready to Sync'}
-              </span>
-            </div>
-
-            <span className="text-[11px] font-mono text-slate-400">
-              {formatLastSync(lastSyncedAt)}
-            </span>
-          </div>
-
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            {syncStatus === 'synced' && 'All routines, timers, and shayaris are safely synced with your Supabase cloud database.'}
-            {syncStatus === 'syncing' && 'Uploading latest local timetable changes to the remote database...'}
-            {syncStatus === 'table_missing' && 'The required "user_data" table was not found in your Supabase database. Click "Database Setup (SQL)" below to copy the schema script.'}
-            {syncStatus === 'error' && (syncError || 'Could not connect to Supabase. Check your internet connection.')}
-            {syncStatus === 'local_only' && 'You are operating in local storage mode.'}
-            {syncStatus === 'idle' && 'Changes are automatically debounced and synced to cloud in real-time.'}
-          </p>
-        </div>
-
-        {/* Action Controls */}
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          <button
-            onClick={handleUploadToCloud}
-            disabled={isUploading || syncStatus === 'table_missing'}
-            className="px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-bold text-slate-200 hover:text-white flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-          >
-            <UploadCloud className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span className="truncate">{isUploading ? 'Uploading...' : 'Push to Cloud'}</span>
-          </button>
-
-          <button
-            onClick={handleRestoreFromCloud}
-            disabled={isDownloading || syncStatus === 'table_missing'}
-            className="px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1] text-xs font-bold text-slate-200 hover:text-white flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-          >
-            <DownloadCloud className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span className="truncate">{isDownloading ? 'Restoring...' : 'Pull from Cloud'}</span>
-          </button>
-        </div>
-
-        {/* SQL Schema & Database Setup Card */}
-        <div className={`mt-2 rounded-2xl border transition-all ${
-          syncStatus === 'table_missing'
-            ? 'border-amber-500/35 bg-[#0C111E]'
-            : 'border-white/[0.08] bg-[#070A12]/60'
-        }`}>
-          <button
-            onClick={() => setShowSqlSetup(!showSqlSetup)}
-            className="w-full p-3.5 flex items-center justify-between text-left"
-          >
-            <div className="flex items-center gap-2.5">
-              <Database className={`w-4 h-4 ${syncStatus === 'table_missing' ? 'text-amber-400' : 'text-cyan-400'}`} />
-              <div>
-                <div className="text-xs font-bold text-white flex items-center gap-2">
-                  Database Setup (SQL Script)
-                  {syncStatus === 'table_missing' && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-300 uppercase">Action Needed</span>
-                  )}
-                </div>
-                <div className="text-[10px] text-slate-400">Copy table schema & RLS policies for Supabase</div>
-              </div>
-            </div>
-            {showSqlSetup ? (
-              <ChevronUp className="w-4 h-4 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-slate-400" />
-            )}
-          </button>
-
-          {showSqlSetup && (
-            <div className="px-3.5 pb-4 pt-1 border-t border-white/[0.06] space-y-3 animate-in fade-in duration-200">
-              {/* Instructions */}
-              <div className="p-2.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-[11px] text-cyan-200/90 leading-relaxed space-y-1">
-                <p className="font-bold text-cyan-100 flex items-center gap-1.5">
-                  <ExternalLink className="w-3 h-3 text-cyan-400" />
-                  How to setup your Supabase database:
-                </p>
-                <ol className="list-decimal list-inside space-y-0.5 text-[10.5px] text-slate-300">
-                  <li>Open your Supabase Project Dashboard</li>
-                  <li>Click <span className="text-white font-semibold">SQL Editor</span> in the left sidebar</li>
-                  <li>Click <span className="text-white font-semibold">New query</span>, paste the script below, and click <span className="text-emerald-400 font-semibold">Run</span></li>
-                </ol>
-              </div>
-
-              {/* Copy SQL Button */}
-              <div className="flex justify-end">
-                <button
-                  onClick={handleCopySql}
-                  className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    copiedSql
-                      ? 'bg-emerald-500 text-white border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]'
-                      : 'bg-indigo-600/30 hover:bg-indigo-600/50 border-indigo-500/40 text-indigo-200 hover:text-white'
-                  }`}
-                >
-                  {copiedSql ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />
-                      <span>Copied to Clipboard!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-indigo-300" />
-                      <span>Copy SQL Schema</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Code Preview */}
-              <div className="relative rounded-xl bg-[#04060A] border border-white/[0.1] p-3 max-h-48 overflow-y-auto font-mono text-[10px] text-slate-300 leading-relaxed scrollbar-thin">
-                <pre className="whitespace-pre">{SQL_SCHEMA_SCRIPT}</pre>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* SECTION 4: ACCOUNT PROFILE */}
       {user && (
