@@ -17,23 +17,12 @@ import {
   Volume2,
   VolumeX,
   Play,
-  Zap,
-  Cloud,
-  UploadCloud,
-  DownloadCloud,
-  RefreshCw,
-  Copy,
-  ExternalLink,
-  AlertTriangle,
-  CheckCircle2,
-  Database,
-  Loader2,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { supabase } from '@/lib/supabase';
 import { playTimerEndSound } from '@/lib/utils';
 import { PomodoroSoundType } from '@/lib/types';
-import { SQL_SCHEMA_SCRIPT } from '@/lib/syncService';
 
 export function SettingsView() {
   const {
@@ -42,12 +31,6 @@ export function SettingsView() {
     profile,
     updateProfile,
     clearSchedule,
-    syncStatus,
-    lastSyncedAt,
-    syncError,
-    syncNow,
-    uploadToCloud,
-    downloadFromCloud,
   } = useAppStore();
 
   const { user } = useAuth();
@@ -55,49 +38,10 @@ export function SettingsView() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
-  const [copiedSql, setCopiedSql] = useState(false);
-  const [isSyncingAction, setIsSyncingAction] = useState(false);
-  const [showSqlDetails, setShowSqlDetails] = useState(false);
 
   const showNotification = (msg: string) => {
     setSavedMessage(msg);
     setTimeout(() => setSavedMessage(null), 2500);
-  };
-
-  const handleCopySql = () => {
-    navigator.clipboard.writeText(SQL_SCHEMA_SCRIPT);
-    setCopiedSql(true);
-    showNotification('SQL migration copied to clipboard!');
-    setTimeout(() => setCopiedSql(false), 2500);
-  };
-
-  const handleManualSync = async () => {
-    setIsSyncingAction(true);
-    await syncNow();
-    setIsSyncingAction(false);
-    showNotification('Cloud synchronization completed');
-  };
-
-  const handleManualUpload = async () => {
-    setIsSyncingAction(true);
-    const ok = await uploadToCloud();
-    setIsSyncingAction(false);
-    if (ok) {
-      showNotification('Uploaded device routine to Supabase');
-    } else {
-      showNotification('Upload failed. Check database table.');
-    }
-  };
-
-  const handleManualDownload = async () => {
-    setIsSyncingAction(true);
-    const ok = await downloadFromCloud();
-    setIsSyncingAction(false);
-    if (ok) {
-      showNotification('Restored routine & settings from Supabase');
-    } else {
-      showNotification('Download failed. Check database table.');
-    }
   };
 
   const handlePomodoroChange = (key: 'workMinutes' | 'shortBreakMinutes' | 'longBreakMinutes', val: number) => {
@@ -647,202 +591,6 @@ export function SettingsView() {
           </div>
         </div>
       </div>
-
-      {/* SECTION: CLOUD SYNC & MULTI-DEVICE */}
-      {user && (
-        <div className="relative overflow-hidden rounded-3xl border border-white/[0.12] bg-gradient-to-br from-[#12192B]/95 via-[#0D1322]/95 to-[#0A0E18]/98 backdrop-blur-2xl p-5 sm:p-6 shadow-[0_15px_35px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.12)] space-y-4">
-          <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent pointer-events-none" />
-          <div className="absolute -top-12 -left-12 w-44 h-44 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                <Cloud className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-white">Cloud Sync & Devices</h3>
-                <p className="text-[11px] text-slate-400">Sync routines across mobile and desktop</p>
-              </div>
-            </div>
-
-            {/* Live Sync Status Badge */}
-            <div className="flex items-center gap-1.5">
-              {syncStatus === 'synced' && (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Synced
-                </span>
-              )}
-              {(syncStatus === 'syncing' || isSyncingAction) && (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[10px] font-black uppercase tracking-wider">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Syncing
-                </span>
-              )}
-              {syncStatus === 'table_missing' && (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-wider">
-                  <AlertTriangle className="w-3 h-3" />
-                  Setup DB
-                </span>
-              )}
-              {syncStatus === 'error' && (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-black uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                  Offline
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Sync Information / Last Updated */}
-          <div className="p-3 rounded-2xl bg-[#070A12]/60 border border-white/5 flex items-center justify-between text-xs">
-            <span className="text-slate-400">Cloud Status:</span>
-            <span className="font-semibold text-slate-200 truncate max-w-[65%] text-right">
-              {syncStatus === 'synced' && lastSyncedAt
-                ? `Updated ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : syncStatus === 'table_missing'
-                ? 'Database table or permissions required'
-                : syncStatus === 'syncing'
-                ? 'Syncing changes...'
-                : syncError
-                ? syncError
-                : 'Offline mode'}
-            </span>
-          </div>
-
-          {/* Service interruption notice */}
-          {syncStatus === 'error' && syncError && (
-            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 space-y-2 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-rose-300">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                <span>Supabase Connection Issue</span>
-              </div>
-              <p className="text-slate-300 text-[11.5px] leading-relaxed">
-                {syncError}
-              </p>
-              <p className="text-slate-400 text-[10.5px]">
-                Your routine data is safely preserved in this browser. When Supabase services recover, syncing will resume automatically.
-              </p>
-              <div className="pt-1 flex flex-wrap items-center gap-2">
-                <button
-                  onClick={handleManualSync}
-                  disabled={isSyncingAction}
-                  className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-bold border border-rose-500/30 flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
-                >
-                  <RefreshCw className={`w-3 h-3 ${isSyncingAction ? 'animate-spin' : ''}`} />
-                  Retry Connection
-                </button>
-                <a
-                  href="https://status.supabase.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  Supabase Status
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* Sync Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <button
-              onClick={handleManualSync}
-              disabled={isSyncingAction}
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-bold transition-all border border-cyan-500/25 active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAction ? 'animate-spin' : ''}`} />
-              Sync Now
-            </button>
-
-            <button
-              onClick={handleManualUpload}
-              disabled={isSyncingAction}
-              title="Upload this device's schedule and settings to Supabase"
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-bold transition-all border border-indigo-500/25 active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              <UploadCloud className="w-3.5 h-3.5" />
-              Push to Cloud
-            </button>
-
-            <button
-              onClick={handleManualDownload}
-              disabled={isSyncingAction}
-              title="Download cloud schedule and settings to this device"
-              className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-bold transition-all border border-emerald-500/25 active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              <DownloadCloud className="w-3.5 h-3.5" />
-              Pull from Cloud
-            </button>
-          </div>
-
-          {/* DATABASE SETUP CARD (If table missing or toggle open) */}
-          {(syncStatus === 'table_missing' || showSqlDetails) && (
-            <div className="p-4 rounded-2xl bg-amber-500/[0.08] border border-amber-500/30 space-y-3">
-              <div className="flex items-start gap-2.5">
-                <Database className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-amber-200">Supabase Database Setup Required</h4>
-                  <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                    To sync your routine across mobile and desktop, run this one-time SQL script in your Supabase SQL Editor.
-                  </p>
-                </div>
-              </div>
-
-              {/* Code Snippet Box */}
-              <div className="relative">
-                <pre className="p-3 rounded-xl bg-[#04060A] border border-white/10 text-[10.5px] font-mono text-slate-300 overflow-x-auto max-h-36 scrollbar-thin">
-                  {SQL_SCHEMA_SCRIPT}
-                </pre>
-              </div>
-
-              {/* Action Buttons for SQL */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <button
-                  onClick={handleCopySql}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold text-xs border border-amber-500/40 active:scale-95 transition-all cursor-pointer"
-                >
-                  {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedSql ? 'Copied to Clipboard!' : 'Copy SQL Script'}
-                </button>
-
-                <a
-                  href="https://supabase.com/dashboard/project/irjnlgvugyedqfoiuygi/sql"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs border border-white/10 active:scale-95 transition-all"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Open Supabase SQL Editor
-                </a>
-
-                <button
-                  onClick={handleManualSync}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs border border-emerald-500/40 active:scale-95 transition-all cursor-pointer ml-auto"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAction ? 'animate-spin' : ''}`} />
-                  Verify Table
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Toggle to show/hide SQL schema when already synced */}
-          {syncStatus !== 'table_missing' && (
-            <div className="flex justify-end pt-1">
-              <button
-                onClick={() => setShowSqlDetails(prev => !prev)}
-                className="text-[11px] text-slate-500 hover:text-slate-400 transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <Database className="w-3 h-3" />
-                {showSqlDetails ? 'Hide Database Schema' : 'View Database Schema'}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* SECTION 4: ACCOUNT PROFILE */}
       {user && (
