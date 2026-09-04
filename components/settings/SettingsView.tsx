@@ -709,16 +709,53 @@ export function SettingsView() {
           {/* Sync Information / Last Updated */}
           <div className="p-3 rounded-2xl bg-[#070A12]/60 border border-white/5 flex items-center justify-between text-xs">
             <span className="text-slate-400">Cloud Status:</span>
-            <span className="font-semibold text-slate-200">
+            <span className="font-semibold text-slate-200 truncate max-w-[65%] text-right">
               {syncStatus === 'synced' && lastSyncedAt
                 ? `Updated ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                 : syncStatus === 'table_missing'
-                ? 'Database table public.user_data required'
+                ? 'Database table or permissions required'
                 : syncStatus === 'syncing'
                 ? 'Syncing changes...'
+                : syncError
+                ? syncError
                 : 'Offline mode'}
             </span>
           </div>
+
+          {/* Service interruption notice */}
+          {syncStatus === 'error' && syncError && (
+            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/25 space-y-2 text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-rose-300">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                <span>Supabase Connection Issue</span>
+              </div>
+              <p className="text-slate-300 text-[11.5px] leading-relaxed">
+                {syncError}
+              </p>
+              <p className="text-slate-400 text-[10.5px]">
+                Your routine data is safely preserved in this browser. When Supabase services recover, syncing will resume automatically.
+              </p>
+              <div className="pt-1 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleManualSync}
+                  disabled={isSyncingAction}
+                  className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-bold border border-rose-500/30 flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isSyncingAction ? 'animate-spin' : ''}`} />
+                  Retry Connection
+                </button>
+                <a
+                  href="https://status.supabase.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1 active:scale-95 transition-all"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Supabase Status
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Sync Action Buttons */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

@@ -27,15 +27,20 @@ create table if not exists public.user_data (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 2. Enable Row Level Security (RLS)
+-- 2. Grant table permissions to authenticated users and service role
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on table public.user_data to authenticated;
+grant all on table public.user_data to service_role;
+
+-- 3. Enable Row Level Security (RLS)
 alter table public.user_data enable row level security;
 
--- 3. Drop existing policies if re-running
+-- 4. Drop existing policies if re-running
 drop policy if exists "Users can view their own data" on public.user_data;
 drop policy if exists "Users can insert their own data" on public.user_data;
 drop policy if exists "Users can update their own data" on public.user_data;
 
--- 4. Create secure RLS policies
+-- 5. Create secure RLS policies
 create policy "Users can view their own data"
   on public.user_data for select
   to authenticated
@@ -52,7 +57,7 @@ create policy "Users can update their own data"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- 5. Enable Realtime updates
+-- 6. Enable Realtime updates
 do $$
 begin
   if not exists (
@@ -63,14 +68,34 @@ begin
   end if;
 end $$;`;
 
-function isTableMissingError(error: { code?: string; message?: string } | null): boolean {
+function isSetupRequiredError(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
   const msg = (error.message || '').toLowerCase();
   return (
     error.code === '42P01' ||
     error.code === 'PGRST205' ||
-    (msg.includes('user_data') && (msg.includes('not find') || msg.includes('schema cache') || msg.includes('does not exist'))) ||
+    error.code === '42501' || // permission denied for table user_data
+    (msg.includes('user_data') && (
+      msg.includes('not find') || 
+      msg.includes('schema cache') || 
+      msg.includes('does not exist') ||
+      msg.includes('permission denied')
+    )) ||
     msg.includes('relation "public.user_data" does not exist')
+  );
+}
+
+function isAuthOrJwtError(error: any): boolean {
+  if (!error) return false;
+  const msg = (error.message || '').toLowerCase();
+  return (
+    error.status === 401 ||
+    error.code === 'PGRST301' ||
+    msg.includes('jwt') ||
+    msg.includes('token') ||
+    msg.includes('401') ||
+    msg.includes('unauthorized') ||
+    msg.includes('invalid claim')
   );
 }
 
@@ -84,15 +109,34 @@ export async function fetchUserDataFromCloud(userId: string): Promise<{
   }
 
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('user_data')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle();
 
+    // If Supabase rejected the JWT (e.g. during Supabase 401 incident), attempt to refresh token & retry
+    if (error && isAuthOrJwtError(error)) {
+      try {
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (!refreshError && refreshData?.session) {
+          const retry = await supabase
+            .from('user_data')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+          data = retry.data;
+          error = retry.error;
+        }
+      } catch {}
+    }
+
     if (error) {
-      if (isTableMissingError(error)) {
-        return { status: 'table_missing', error: error.message };
+      if (isSetupRequiredError(error)) {
+        return { status: 'table_missing', error: 'Table or permissions missing. Please run the SQL schema.' };
+      }
+      if (isAuthOrJwtError(error)) {
+        return { status: 'error', error: 'Supabase session 401 (JWT rejected). Try signing out & back in.' };
       }
       return { status: 'error', error: error.message };
     }
@@ -115,7 +159,7 @@ export async function fetchUserDataFromCloud(userId: string): Promise<{
       },
     };
   } catch (err: any) {
-    return { status: 'error', error: err?.message || 'Unknown network error' };
+    return { status: 'error', error: err?.message || 'Network / Supabase service unavailable' };
   }
 }
 
@@ -133,7 +177,7 @@ export async function saveUserDataToCloud(
 
   try {
     const updatedAt = new Date().toISOString();
-    const { error } = await supabase.from('user_data').upsert({
+    let { error } = await supabase.from('user_data').upsert({
       user_id: userId,
       profile: payload.profile,
       schedule: payload.schedule,
@@ -145,16 +189,40 @@ export async function saveUserDataToCloud(
       updated_at: updatedAt,
     });
 
+    // If Supabase rejected the JWT (401 incident), attempt refresh & retry
+    if (error && isAuthOrJwtError(error)) {
+      try {
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (!refreshError && refreshData?.session) {
+          const retry = await supabase.from('user_data').upsert({
+            user_id: userId,
+            profile: payload.profile,
+            schedule: payload.schedule,
+            user_default_schedule: payload.user_default_schedule,
+            completed_tasks: payload.completed_tasks,
+            focus_logs: payload.focus_logs,
+            pomodoro_settings: payload.pomodoro_settings,
+            favorite_shayari_ids: payload.favorite_shayari_ids,
+            updated_at: updatedAt,
+          });
+          error = retry.error;
+        }
+      } catch {}
+    }
+
     if (error) {
-      if (isTableMissingError(error)) {
-        return { status: 'table_missing', error: error.message };
+      if (isSetupRequiredError(error)) {
+        return { status: 'table_missing', error: 'Table or permissions missing. Please run the SQL schema.' };
+      }
+      if (isAuthOrJwtError(error)) {
+        return { status: 'error', error: 'Supabase session 401 (JWT rejected). Try signing out & back in.' };
       }
       return { status: 'error', error: error.message };
     }
 
     return { status: 'success', updatedAt };
   } catch (err: any) {
-    return { status: 'error', error: err?.message || 'Unknown network error' };
+    return { status: 'error', error: err?.message || 'Network / Supabase service unavailable' };
   }
 }
 
