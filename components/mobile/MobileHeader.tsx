@@ -122,12 +122,16 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
           </div>
         </div>
 
-        {/* Right: Timer Badge & Cloud Status Pill */}
-        <div className="shrink-0 flex items-center gap-2">
+        {/* Right: Cloud Status Pill & Countdown Timer Badge below */}
+        <div className="shrink-0 flex flex-col items-end justify-center gap-1">
+          <span className="flex items-center gap-1.5 px-2 py-0.5 sm:py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase tracking-wider font-black shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+            Cloud
+          </span>
           {showTimerBadge && (
             <button 
               onClick={onTimerClick}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-md active:scale-95 transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full border shadow-md active:scale-95 transition-all ${
                 timerState.mode === 'work' 
                   ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]' 
                   : timerState.mode === 'short_break'
@@ -145,10 +149,6 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
               </span>
             </button>
           )}
-          <span className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase tracking-wider font-black shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-            Cloud
-          </span>
         </div>
       </div>
 
