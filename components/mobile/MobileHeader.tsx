@@ -154,9 +154,9 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
 
       {/* Bottom Stack: Centered Date & Time */}
       <div className="flex flex-col items-center justify-center space-y-0">
-        <div className="flex items-center gap-2 text-[12px] font-black tracking-tight">
-          <span className="text-slate-300">{dayName}</span>
-          <span className="text-white/20">|</span>
+        <div className="flex items-center gap-2 text-[12px] font-black tracking-tight text-white">
+          <span className="text-white">{dayName}</span>
+          <span className="text-white/30">|</span>
           <span className="text-white font-mono">{timeFormatted}</span>
         </div>
         
