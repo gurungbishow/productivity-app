@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog, PomodoroMode, GlobalPomodoroState } from './types';
-import { DEFAULT_SCHEDULE, parseTimeToMinutes } from './scheduleEngine';
+import { DEFAULT_SCHEDULE, parseTimeToMinutes, sortScheduleAscending } from './scheduleEngine';
 import { triggerConfetti, playTimerEndSound, sendNotificationSafe } from './utils';
 import { useAuth } from './authContext';
 import {
@@ -161,7 +161,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Load Schedule
       const savedSchedule = localStorage.getItem(STORAGE_KEYS.SCHEDULE);
       if (savedSchedule) {
-        setSchedule(JSON.parse(savedSchedule));
+        try {
+          const parsed = JSON.parse(savedSchedule);
+          if (Array.isArray(parsed)) {
+            setSchedule(sortScheduleAscending(parsed));
+          } else {
+            setSchedule([]);
+          }
+        } catch {
+          setSchedule([]);
+        }
       } else {
         setSchedule([]); // Start fresh for new users
       }
@@ -198,7 +207,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Load User Default Schedule
       const savedUserDefault = localStorage.getItem(STORAGE_KEYS.USER_DEFAULT_SCHEDULE);
       if (savedUserDefault) {
-        setUserDefaultSchedule(JSON.parse(savedUserDefault));
+        try {
+          const parsed = JSON.parse(savedUserDefault);
+          if (Array.isArray(parsed)) {
+            setUserDefaultSchedule(sortScheduleAscending(parsed));
+          }
+        } catch {}
       }
 
       // Load Pomodoro Global State
@@ -443,10 +457,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setProfile(prev => ({ ...prev, ...cloudData.profile }));
         }
         if (Array.isArray(cloudData.schedule)) {
-          setSchedule(cloudData.schedule);
+          setSchedule(sortScheduleAscending(cloudData.schedule));
         }
         if (Array.isArray(cloudData.user_default_schedule)) {
-          setUserDefaultSchedule(cloudData.user_default_schedule);
+          setUserDefaultSchedule(sortScheduleAscending(cloudData.user_default_schedule));
         }
         if (cloudData.completed_tasks && cloudData.completed_tasks.date === getTodayString()) {
           setCompletedTaskIds(cloudData.completed_tasks.ids || []);
@@ -493,10 +507,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = subscribeToUserDataChanges(user.id, (remoteData) => {
       isHydratingFromRemoteRef.current = true;
       if (Array.isArray(remoteData.schedule)) {
-        setSchedule(remoteData.schedule);
+        setSchedule(sortScheduleAscending(remoteData.schedule));
       }
       if (Array.isArray(remoteData.user_default_schedule)) {
-        setUserDefaultSchedule(remoteData.user_default_schedule);
+        setUserDefaultSchedule(sortScheduleAscending(remoteData.user_default_schedule));
       }
       if (remoteData.profile && remoteData.profile.name) {
         setProfile(prev => ({ ...prev, ...remoteData.profile }));
@@ -710,21 +724,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     setSchedule((prev) => {
-      const updated = [...prev, newItem].sort((a, b) => a.startMinutes - b.startMinutes);
+      const updated = sortScheduleAscending([...prev, newItem]);
       return updated;
     });
   }, []);
 
   const updateScheduleItem = useCallback((id: string, updates: Partial<ScheduleItem>) => {
-    setSchedule((prev) =>
-      prev.map((item) => {
+    setSchedule((prev) => {
+      const updated = prev.map((item) => {
         if (item.id !== id) return item;
-        const updated = { ...item, ...updates };
-        if (updates.startTime) updated.startMinutes = parseTimeToMinutes(updates.startTime);
-        if (updates.endTime) updated.endMinutes = parseTimeToMinutes(updates.endTime);
-        return updated;
-      })
-    );
+        const newItem = { ...item, ...updates };
+        if (updates.startTime) newItem.startMinutes = parseTimeToMinutes(updates.startTime);
+        if (updates.endTime) newItem.endMinutes = parseTimeToMinutes(updates.endTime);
+        return newItem;
+      });
+      return sortScheduleAscending(updated);
+    });
   }, []);
 
   const deleteScheduleItem = useCallback((id: string) => {
@@ -733,7 +748,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetScheduleToDefault = useCallback(() => {
-    setSchedule(DEFAULT_SCHEDULE);
+    setSchedule(sortScheduleAscending(DEFAULT_SCHEDULE));
     setCompletedTaskIds([]);
   }, []);
 
@@ -782,13 +797,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const saveAsUserDefault = useCallback(() => {
     setUserDefaultSchedule(
-      schedule.map(item => ({ ...item, id: crypto.randomUUID() }))
+      sortScheduleAscending(schedule.map(item => ({ ...item, id: crypto.randomUUID() })))
     );
   }, [schedule]);
 
   const loadUserDefault = useCallback(() => {
     if (userDefaultSchedule.length > 0) {
-      setSchedule(userDefaultSchedule.map(item => ({ ...item, id: crypto.randomUUID() })));
+      setSchedule(sortScheduleAscending(userDefaultSchedule.map(item => ({ ...item, id: crypto.randomUUID() }))));
       setCompletedTaskIds([]);
     }
   }, [userDefaultSchedule]);

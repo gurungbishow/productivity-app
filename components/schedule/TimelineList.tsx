@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
-import { isSlotActive, getSlotDurationMinutes } from '@/lib/scheduleEngine';
+import { isSlotActive, getSlotDurationMinutes, sortScheduleAscending } from '@/lib/scheduleEngine';
 import { ScheduleItem } from '@/lib/types';
 import { triggerConfetti, formatDuration } from '@/lib/utils';
 import { getCategoryConfig } from '@/lib/categories';
@@ -49,6 +49,10 @@ export function TimelineList() {
     saveAsUserDefault,
     loadUserDefault,
   } = useAppStore();
+
+  const sortedSchedule = React.useMemo(() => {
+    return sortScheduleAscending(schedule);
+  }, [schedule]);
 
   const [currentMinutes, setCurrentMinutes] = useState(
     () => new Date().getHours() * 60 + new Date().getMinutes()
@@ -268,7 +272,7 @@ export function TimelineList() {
 
       {/* Routine Cards List (Compact & Mobile-Optimized with Safe Bottom Padding) */}
       <div className="space-y-2.5 pb-20">
-        {schedule.map((item) => {
+        {sortedSchedule.map((item) => {
           const active = isSlotActive(item, currentMinutes);
           const isCompleted = completedTaskIds.includes(item.id);
           const duration = getSlotDurationMinutes(item);

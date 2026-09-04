@@ -1,22 +1,34 @@
 import { ScheduleItem } from './types';
 
 export function parseTimeToMinutes(timeStr: string): number {
-  // Parses "05:30 AM", "5:30 AM", "10:00 PM", "12:00 PM", etc.
+  if (!timeStr) return 0;
   const cleaned = timeStr.trim();
-  const match = cleaned.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-  if (!match) return 0;
 
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const meridiem = match[3].toUpperCase();
+  // 12-hour format: "05:30 AM", "5:30am", "10:00 PM"
+  const match12 = cleaned.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (match12) {
+    let hours = parseInt(match12[1], 10);
+    const minutes = parseInt(match12[2], 10);
+    const meridiem = match12[3].toUpperCase();
 
-  if (meridiem === 'PM' && hours !== 12) {
-    hours += 12;
-  } else if (meridiem === 'AM' && hours === 12) {
-    hours = 0;
+    if (meridiem === 'PM' && hours !== 12) {
+      hours += 12;
+    } else if (meridiem === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    return hours * 60 + minutes;
   }
 
-  return hours * 60 + minutes;
+  // 24-hour format: "14:30", "05:30"
+  const match24 = cleaned.match(/^(\d{1,2}):(\d{2})$/);
+  if (match24) {
+    const hours = parseInt(match24[1], 10);
+    const minutes = parseInt(match24[2], 10);
+    return hours * 60 + minutes;
+  }
+
+  return 0;
 }
 
 export function formatMinutesToTime(minutes: number): string {
@@ -32,125 +44,138 @@ export function formatMinutesToTime(minutes: number): string {
   return `${hours}:${paddedMins} ${meridiem}`;
 }
 
+export function sortScheduleAscending(items: ScheduleItem[]): ScheduleItem[] {
+  return [...items].sort((a, b) => {
+    const aStart = typeof a.startMinutes === 'number' && !isNaN(a.startMinutes)
+      ? a.startMinutes
+      : parseTimeToMinutes(a.startTime || '00:00 AM');
+    const bStart = typeof b.startMinutes === 'number' && !isNaN(b.startMinutes)
+      ? b.startMinutes
+      : parseTimeToMinutes(b.startTime || '00:00 AM');
+
+    if (aStart !== bStart) {
+      return aStart - bStart;
+    }
+
+    const aEnd = typeof a.endMinutes === 'number' && !isNaN(a.endMinutes)
+      ? a.endMinutes
+      : parseTimeToMinutes(a.endTime || '00:00 AM');
+    const bEnd = typeof b.endMinutes === 'number' && !isNaN(b.endMinutes)
+      ? b.endMinutes
+      : parseTimeToMinutes(b.endTime || '00:00 AM');
+
+    return aEnd - bEnd;
+  });
+}
+
 export const DEFAULT_SCHEDULE: ScheduleItem[] = [
   {
     id: 'slot-1',
-    title: 'Early Morning Rise & Hydration',
-    description: 'Get up from bed, drink warm water, stretch, welcome the day with gratitude',
-    startTime: '5:00 AM',
-    endTime: '5:30 AM',
-    startMinutes: parseTimeToMinutes('5:00 AM'), // 300
-    endMinutes: parseTimeToMinutes('5:30 AM'),   // 330
+    title: 'Morning Rituals',
+    description: 'Get up from bed, Brush your teeth, Wash your face, Drink a glass of warm water, Exercise to energize your body, Take a refreshing shower, Practice positive affirmations to start the day with a positive mindset, Breakfast.',
+    startTime: '5:30 AM',
+    endTime: '6:30 AM',
+    startMinutes: parseTimeToMinutes('5:30 AM'),
+    endMinutes: parseTimeToMinutes('6:30 AM'),
     category: 'mindfulness',
     isDefault: true,
   },
   {
     id: 'slot-2',
-    title: 'Exercise, Bath & Morning Affirmation',
-    description: 'Physical workout, cold/warm shower, positive self-talk and daily mindset alignment',
-    startTime: '5:30 AM',
-    endTime: '6:30 AM',
-    startMinutes: parseTimeToMinutes('5:30 AM'), // 330
-    endMinutes: parseTimeToMinutes('6:30 AM'),   // 390
+    title: 'College & Meals',
+    description: 'Go to college, Attend lectures and actively participate in class, Engage in campus discussions and activities, Have lunch and take a short break.',
+    startTime: '6:30 AM',
+    endTime: '10:00 AM',
+    startMinutes: parseTimeToMinutes('6:30 AM'),
+    endMinutes: parseTimeToMinutes('10:00 AM'),
     category: 'health_fitness',
     isDefault: true,
   },
   {
     id: 'slot-3',
-    title: 'College',
-    description: 'Classes, lectures, campus discussions, and academic sessions',
-    startTime: '6:30 AM',
-    endTime: '10:00 AM',
-    startMinutes: parseTimeToMinutes('6:30 AM'), // 390
-    endMinutes: parseTimeToMinutes('10:00 AM'),  // 600
+    title: 'College Coursework',
+    description: 'Complete assignments, Review and cover the syllabus, Study lecture materials and strengthen understanding of key concepts, Revise regularly to stay up to date with coursework',
+    startTime: '10:00 AM',
+    endTime: '12:00 PM',
+    startMinutes: parseTimeToMinutes('10:00 AM'),
+    endMinutes: parseTimeToMinutes('12:00 PM'),
     category: 'deep_work',
     isDefault: true,
   },
   {
     id: 'slot-4',
-    title: 'Coursework',
-    description: 'Assignments, engineering labs, exam preparation, and curriculum problem solving',
-    startTime: '10:00 AM',
-    endTime: '12:00 PM',
-    startMinutes: parseTimeToMinutes('10:00 AM'), // 600
-    endMinutes: parseTimeToMinutes('12:00 PM'),   // 720
+    title: 'Data Science from Coursera',
+    description: 'Attend specialized lectures and complete structured video modules, Work on practical projects to apply concepts, Complete courses and assessments to build industry-relevant skills.',
+    startTime: '12:00 PM',
+    endTime: '3:30 PM',
+    startMinutes: parseTimeToMinutes('12:00 PM'),
+    endMinutes: parseTimeToMinutes('3:30 PM'),
     category: 'deep_work',
     isDefault: true,
   },
   {
     id: 'slot-5',
-    title: 'Coursera',
-    description: 'Online certifications, specialized lectures, projects, and structured video modules',
-    startTime: '12:00 PM',
-    endTime: '3:30 PM',
-    startMinutes: parseTimeToMinutes('12:00 PM'), // 720
-    endMinutes: parseTimeToMinutes('3:30 PM'),    // 930
-    category: 'deep_work',
-    isDefault: true,
-  },
-  {
-    id: 'slot-6',
     title: 'Breakfast & Refreshment',
     description: 'Healthy meal, tea/coffee, rest eyes, and prepare energy for evening deep work',
     startTime: '3:30 PM',
     endTime: '4:00 PM',
-    startMinutes: parseTimeToMinutes('3:30 PM'), // 930
-    endMinutes: parseTimeToMinutes('4:00 PM'),   // 960
+    startMinutes: parseTimeToMinutes('3:30 PM'),
+    endMinutes: parseTimeToMinutes('4:00 PM'),
     category: 'health_fitness',
     isDefault: true,
   },
   {
-    id: 'slot-7',
+    id: 'slot-6',
     title: 'AI / ML Deep Work',
     description: 'Machine Learning models, Python, Neural Networks, research papers, and Kaggle/building projects',
     startTime: '4:00 PM',
     endTime: '7:00 PM',
-    startMinutes: parseTimeToMinutes('4:00 PM'), // 960
-    endMinutes: parseTimeToMinutes('7:00 PM'),   // 1140
+    startMinutes: parseTimeToMinutes('4:00 PM'),
+    endMinutes: parseTimeToMinutes('7:00 PM'),
     category: 'deep_work',
     isDefault: true,
   },
   {
-    id: 'slot-8',
+    id: 'slot-7',
     title: 'Dinner',
     description: 'Nutritious dinner, relaxation with family/friends, mindful eating without screens',
     startTime: '7:00 PM',
     endTime: '8:00 PM',
-    startMinutes: parseTimeToMinutes('7:00 PM'), // 1140
-    endMinutes: parseTimeToMinutes('8:00 PM'),   // 1200
+    startMinutes: parseTimeToMinutes('7:00 PM'),
+    endMinutes: parseTimeToMinutes('8:00 PM'),
     category: 'health_fitness',
     isDefault: true,
   },
   {
-    id: 'slot-9',
+    id: 'slot-8',
     title: 'Book Reading',
     description: 'Non-fiction, philosophy, self-development, or biography reading before sleep',
     startTime: '8:00 PM',
     endTime: '9:30 PM',
-    startMinutes: parseTimeToMinutes('8:00 PM'), // 1200
-    endMinutes: parseTimeToMinutes('9:30 PM'),   // 1290
+    startMinutes: parseTimeToMinutes('8:00 PM'),
+    endMinutes: parseTimeToMinutes('9:30 PM'),
     category: 'growth_creative',
     isDefault: true,
   },
   {
-    id: 'slot-10',
+    id: 'slot-9',
     title: 'Evening Affirmation & Wind Down',
     description: 'Reflect on today\'s achievements, gratitude journal, plan tomorrow, digital detox',
     startTime: '9:30 PM',
     endTime: '10:00 PM',
-    startMinutes: parseTimeToMinutes('9:30 PM'), // 1290
-    endMinutes: parseTimeToMinutes('10:00 PM'),  // 1320
+    startMinutes: parseTimeToMinutes('9:30 PM'),
+    endMinutes: parseTimeToMinutes('10:00 PM'),
     category: 'mindfulness',
     isDefault: true,
   },
   {
-    id: 'slot-11',
+    id: 'slot-10',
     title: 'Deep Sleep',
     description: 'Restorative uninterrupted sleep, muscle recovery, memory consolidation',
     startTime: '10:00 PM',
-    endTime: '5:00 AM',
-    startMinutes: parseTimeToMinutes('10:00 PM'), // 1320
-    endMinutes: parseTimeToMinutes('5:00 AM'),   // 300 (overnight span)
+    endTime: '5:30 AM',
+    startMinutes: parseTimeToMinutes('10:00 PM'),
+    endMinutes: parseTimeToMinutes('5:30 AM'),
     category: 'health_fitness',
     isDefault: true,
   },
@@ -169,7 +194,7 @@ export function isSlotActive(item: ScheduleItem, currentMinutes: number): boolea
   if (item.startMinutes <= item.endMinutes) {
     return currentMinutes >= item.startMinutes && currentMinutes < item.endMinutes;
   }
-  // Crosses midnight (e.g. 22:00 to 05:00 -> 1320 to 300)
+  // Crosses midnight (e.g. 22:00 to 05:30 -> 1320 to 330)
   return currentMinutes >= item.startMinutes || currentMinutes < item.endMinutes;
 }
 
@@ -193,6 +218,7 @@ export function getSlotElapsedMinutes(item: ScheduleItem, currentMinutes: number
 }
 
 export function getScheduleStatus(items: ScheduleItem[] = DEFAULT_SCHEDULE, date: Date = new Date()): ScheduleStatus {
+  const sortedItems = sortScheduleAscending(items);
   const currentMinutes = date.getHours() * 60 + date.getMinutes();
   const currentSeconds = date.getSeconds();
   const currentTotalFraction = currentMinutes + currentSeconds / 60;
@@ -200,7 +226,7 @@ export function getScheduleStatus(items: ScheduleItem[] = DEFAULT_SCHEDULE, date
   let currentSlot: ScheduleItem | null = null;
   let nextSlot: ScheduleItem | null = null;
 
-  for (const item of items) {
+  for (const item of sortedItems) {
     if (isSlotActive(item, currentMinutes)) {
       currentSlot = item;
       break;
@@ -209,14 +235,14 @@ export function getScheduleStatus(items: ScheduleItem[] = DEFAULT_SCHEDULE, date
 
   // Determine next slot
   if (currentSlot) {
-    const currentIndex = items.findIndex(i => i.id === currentSlot!.id);
+    const currentIndex = sortedItems.findIndex(i => i.id === currentSlot!.id);
     if (currentIndex !== -1) {
-      nextSlot = items[(currentIndex + 1) % items.length];
+      nextSlot = sortedItems[(currentIndex + 1) % sortedItems.length];
     }
   } else {
     // If no slot is strictly active, find the nearest upcoming one
     let minDistance = Infinity;
-    for (const item of items) {
+    for (const item of sortedItems) {
       let distance = item.startMinutes - currentMinutes;
       if (distance < 0) distance += 1440;
       if (distance < minDistance) {
