@@ -214,7 +214,7 @@ export function getScheduleStatus(items: ScheduleItem[] = DEFAULT_SCHEDULE, date
   // Determine next slot
   if (currentSlot) {
     const currentIndex = sortedItems.findIndex(i => i.id === currentSlot!.id);
-    if (currentIndex !== -1) {
+    if (currentIndex !== -1 && sortedItems.length > 1) {
       nextSlot = sortedItems[(currentIndex + 1) % sortedItems.length];
     }
   } else {

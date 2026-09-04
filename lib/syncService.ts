@@ -27,9 +27,9 @@ create table if not exists public.user_data (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 2. Grant table permissions to authenticated users and service role
-grant usage on schema public to authenticated;
-grant select, insert, update, delete on table public.user_data to authenticated;
+-- 2. Grant table permissions to authenticated users, anon, and service role
+grant usage on schema public to authenticated, anon;
+grant select, insert, update, delete on table public.user_data to authenticated, anon;
 grant all on table public.user_data to service_role;
 
 -- 3. Enable Row Level Security (RLS)
@@ -39,6 +39,7 @@ alter table public.user_data enable row level security;
 drop policy if exists "Users can view their own data" on public.user_data;
 drop policy if exists "Users can insert their own data" on public.user_data;
 drop policy if exists "Users can update their own data" on public.user_data;
+drop policy if exists "Users can delete their own data" on public.user_data;
 
 -- 5. Create secure RLS policies
 create policy "Users can view their own data"
@@ -56,6 +57,11 @@ create policy "Users can update their own data"
   to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+create policy "Users can delete their own data"
+  on public.user_data for delete
+  to authenticated
+  using (auth.uid() = user_id);
 
 -- 6. Enable Realtime updates
 do $$

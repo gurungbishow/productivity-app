@@ -172,7 +172,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSchedule([]);
         }
       } else {
-        setSchedule([]); // Start fresh for new users
+        setSchedule(sortScheduleAscending(DEFAULT_SCHEDULE));
       }
 
       // Load Today's Completed Tasks
@@ -501,10 +501,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [user, isLoadingAuth, isLoaded, hydrateFromCloud]);
 
   // Realtime subscription for cross-device updates
+  const userId = user?.id;
+  const isTableMissing = syncStatus === 'table_missing';
   useEffect(() => {
-    if (!user || syncStatus === 'table_missing') return;
+    if (!userId || isTableMissing) return;
 
-    const unsubscribe = subscribeToUserDataChanges(user.id, (remoteData) => {
+    const unsubscribe = subscribeToUserDataChanges(userId, (remoteData) => {
       isHydratingFromRemoteRef.current = true;
       if (Array.isArray(remoteData.schedule)) {
         setSchedule(sortScheduleAscending(remoteData.schedule));
@@ -539,7 +541,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       unsubscribe();
     };
-  }, [user, syncStatus]);
+  }, [userId, isTableMissing]);
 
   // Auto-sync debounced changes to Supabase
   useEffect(() => {
@@ -597,8 +599,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const localTime = lastSyncedAt ? new Date(lastSyncedAt).getTime() : 0;
             if (remoteTime > localTime) {
               isHydratingFromRemoteRef.current = true;
-              if (Array.isArray(res.data.schedule)) setSchedule(res.data.schedule);
-              if (Array.isArray(res.data.user_default_schedule)) setUserDefaultSchedule(res.data.user_default_schedule);
+              if (Array.isArray(res.data.schedule)) setSchedule(sortScheduleAscending(res.data.schedule));
+              if (Array.isArray(res.data.user_default_schedule)) setUserDefaultSchedule(sortScheduleAscending(res.data.user_default_schedule));
               if (res.data.profile) setProfile((prev) => ({ ...prev, ...res.data!.profile }));
               if (res.data.completed_tasks && res.data.completed_tasks.date === getTodayString()) {
                 setCompletedTaskIds(res.data.completed_tasks.ids || []);
@@ -629,8 +631,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSyncError(null);
     const payload: UserDataPayload = {
       profile: profileRef.current,
-      schedule: scheduleRef.current,
-      user_default_schedule: userDefaultScheduleRef.current,
+      schedule: sortScheduleAscending(scheduleRef.current),
+      user_default_schedule: sortScheduleAscending(userDefaultScheduleRef.current),
       completed_tasks: { date: getTodayString(), ids: completedTaskIdsRef.current },
       focus_logs: focusLogsRef.current,
       pomodoro_settings: pomodoroSettingsRef.current,
@@ -659,8 +661,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const res = await fetchUserDataFromCloud(user.id);
     if (res.status === 'success' && res.data) {
       isHydratingFromRemoteRef.current = true;
-      if (Array.isArray(res.data.schedule)) setSchedule(res.data.schedule);
-      if (Array.isArray(res.data.user_default_schedule)) setUserDefaultSchedule(res.data.user_default_schedule);
+      if (Array.isArray(res.data.schedule)) setSchedule(sortScheduleAscending(res.data.schedule));
+      if (Array.isArray(res.data.user_default_schedule)) setUserDefaultSchedule(sortScheduleAscending(res.data.user_default_schedule));
       if (res.data.profile && res.data.profile.name) setProfile((prev) => ({ ...prev, ...res.data!.profile }));
       if (res.data.completed_tasks && res.data.completed_tasks.date === getTodayString()) {
         setCompletedTaskIds(res.data.completed_tasks.ids || []);

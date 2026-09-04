@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 import { getNepaliDate } from '@/lib/bikramSambat';
-import { 
-  Sun, 
-  Moon, 
-  Sunrise, 
+import {
+  Sun,
+  Moon,
+  Sunrise,
   Sunset
 } from 'lucide-react';
 
@@ -181,7 +181,7 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
                 {greeting}, {userName}!
               </span>
             </h1>
-            <p className="text-[10.5px] font-semibold text-slate-400">Stay consistent & make it count</p>
+            <p className="text-[10.5px] font-semibold text-slate-400">Stay consistent & make it count.</p>
           </div>
         </div>
 
@@ -201,21 +201,19 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
 
           <div className="h-[21px] flex items-center justify-end">
             {showTimerBadge && (
-              <button 
+              <button
                 onClick={onTimerClick}
-                className={`animate-in fade-in duration-200 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shadow-md active:scale-95 transition-all ${
-                  timerState.mode === 'work' 
-                    ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]' 
+                className={`animate-in fade-in duration-200 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shadow-md active:scale-95 transition-all ${timerState.mode === 'work'
+                    ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
                     : timerState.mode === 'short_break'
-                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                    : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                }`}
+                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                      : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                  }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  timerState.status === 'running'
+                <span className={`w-1.5 h-1.5 rounded-full ${timerState.status === 'running'
                     ? timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400 animate-pulse'
                     : 'bg-slate-400'
-                }`} />
+                  }`} />
                 <span className="text-[11px] font-black font-mono tracking-wider">
                   {badgeTime}
                 </span>
@@ -232,7 +230,7 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
           <span className="text-white/30">|</span>
           <span className="text-white font-mono">{timeFormatted}</span>
         </div>
-        
+
         <div className="flex items-center gap-2 text-[10.5px] font-bold tracking-tight">
           <span className="text-amber-400 flex items-center gap-1">
             <span>{nepaliDate.monthName} {nepaliDate.day}, {nepaliDate.year} BS</span>

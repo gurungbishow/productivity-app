@@ -10,7 +10,7 @@ import {
   Pause,
   RotateCcw,
   SkipForward,
-  Clock, 
+  Clock,
   Check,
   Zap
 } from 'lucide-react';

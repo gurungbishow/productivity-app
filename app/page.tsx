@@ -17,7 +17,6 @@ import { Loader2 } from 'lucide-react';
 function MobileAppContent() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'schedule' | 'settings'>('dashboard');
 
-
   return (
     <div className="min-h-screen bg-[#05070B] flex justify-center selection:bg-indigo-500 selection:text-white">
       

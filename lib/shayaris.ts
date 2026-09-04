@@ -169,11 +169,13 @@ export function getDailyShayari(date: Date = new Date()): Shayari {
   return MOTIVATIONAL_SHAYARIS[index];
 }
 
-export function getRandomShayari(currentIndex?: number): Shayari {
+export function getRandomShayari(currentId?: number): Shayari {
   let nextIndex = Math.floor(Math.random() * MOTIVATIONAL_SHAYARIS.length);
-  if (currentIndex !== undefined && MOTIVATIONAL_SHAYARIS.length > 1) {
-    while (nextIndex === currentIndex) {
+  if (currentId !== undefined && MOTIVATIONAL_SHAYARIS.length > 1) {
+    let attempts = 0;
+    while (MOTIVATIONAL_SHAYARIS[nextIndex].id === currentId && attempts < 20) {
       nextIndex = Math.floor(Math.random() * MOTIVATIONAL_SHAYARIS.length);
+      attempts++;
     }
   }
   return MOTIVATIONAL_SHAYARIS[nextIndex];
