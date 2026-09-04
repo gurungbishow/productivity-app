@@ -36,7 +36,7 @@ export function ShayariWidget() {
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[10.5px] font-black uppercase tracking-wider shadow-[0_0_12px_rgba(245,158,11,0.2)]">
           <Quote className="w-3.5 h-3.5 text-amber-400" />
-          <span>Daily Shayari & Wisdom</span>
+          <span>Daily Wisdom & Lessons</span>
         </span>
 
         <span className="text-[10px] font-bold text-amber-400/60 uppercase tracking-widest flex items-center gap-1">
@@ -70,7 +70,7 @@ export function ShayariWidget() {
             className="px-3.5 py-1.5 rounded-[10px] bg-[#0E1424] hover:bg-[#141C30] text-amber-300 active:scale-90 font-black text-[11px] flex items-center gap-1.5 transition-all duration-200"
           >
             <Shuffle className="w-3 h-3 text-amber-400 stroke-[2.5]" />
-            <span className="bg-gradient-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-transparent">Next Shayari</span>
+            <span className="bg-gradient-to-r from-white via-amber-100 to-amber-300 bg-clip-text text-transparent">Next Wisdom</span>
           </button>
         </div>
       </div>

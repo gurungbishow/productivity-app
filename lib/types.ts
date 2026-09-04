@@ -59,10 +59,7 @@ export interface FocusSessionLog {
 export interface Shayari {
   id: number;
   lines: string[];
-  transliteration?: string[];
   translation: string;
-  poet: string;
-  theme: string;
 }
 
 export interface UserProfile {

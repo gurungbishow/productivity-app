@@ -4,314 +4,161 @@ export const MOTIVATIONAL_SHAYARIS: Shayari[] = [
   {
     id: 1,
     lines: [
-      "ख़ुदी को कर बुलंद इतना कि हर तक़दीर से पहले",
-      "ख़ुदा बंदे से ख़ुद पूछे बता तेरी रज़ा क्या है"
+      "Life isn’t fair, but it is still good."
     ],
-    transliteration: [
-      "Khudi ko kar buland itna ke har taqdeer se pehle",
-      "Khuda bande se khud pooche, bata teri raza kya hai"
-    ],
-    translation: "Elevate your selfhood so high that before writing every destiny, God Himself asks you: tell me, what is your desire?",
-    poet: "Allama Iqbal",
-    theme: "Self-Belief & Mastery"
+    translation: "Even when life feels unjust or challenging, beauty, joy, and meaningful moments remain everywhere around us if we choose to notice them."
   },
   {
     id: 2,
     lines: [
-      "हो गई है पीर पर्वत सी पिघलनी चाहिए",
-      "इस हिमालय से कोई गंगा निकलनी चाहिए"
+      "If we threw our problems in a pile and saw everyone else’s,",
+      "we’d grab ours right back."
     ],
-    transliteration: [
-      "Ho gayi hai peer parvat si pighalni chahiye",
-      "Is Himalaya se koi Ganga nikalni chahiye"
-    ],
-    translation: "The sorrow that stands like a mountain must now melt away; from this Himalaya, a new river of triumph must emerge.",
-    poet: "Dushyant Kumar",
-    theme: "Resilience & Action"
+    translation: "Everyone carries silent battles we know nothing about. Appreciating your own life and challenges keeps you grounded, humble, and empathetic."
   },
   {
     id: 3,
     lines: [
-      "मंज़िल उन्हीं को मिलती है जिनके सपनों में जान होती है",
-      "पंखों से कुछ नहीं होता, हौसलों से उड़ान होती है"
+      "Time heals almost everything.",
+      "Give Time, time."
     ],
-    transliteration: [
-      "Manzil unhi ko milti hai jinke sapno mein jaan hoti hai",
-      "Pankhon se kuch nahi hota, hauslon se udaan hoti hai"
-    ],
-    translation: "Destinations are reached by those whose dreams have living conviction; wings alone do nothing, it is sheer courage that truly flies.",
-    poet: "Traditional Motivational",
-    theme: "Courage & Dreams"
+    translation: "Deep wounds, heartache, and turbulence soften with patient endurance. Trust the natural unfolding of time to restore peace."
   },
   {
     id: 4,
     lines: [
-      "सफ़र में धूप तो होगी जो चल सको तो चलो",
-      "सभी हैं भीड़ में तुम भी निकल सको तो चलो"
+      "No matter how good or bad a situation is,",
+      "it will change."
     ],
-    transliteration: [
-      "Safar mein dhoop to hogi jo chal sako to chalo",
-      "Sabhi hain bheed mein tum bhi nikal sako to chalo"
-    ],
-    translation: "There will be scorching sun on the journey—walk if you can; everyone is in the crowd—carve your own path out if you can.",
-    poet: "Nida Fazli",
-    theme: "Independence & Grit"
+    translation: "Everything in life is impermanent. Stay humble and appreciative during peak moments, and remain hopeful during the difficult seasons."
   },
   {
     id: 5,
     lines: [
-      "हज़ारों ख़्वाहिशें ऐसी कि हर ख़्वाहिश पे दम निकले",
-      "बहुत निकले मिरे अरमाँ लेकिन फिर भी कम निकले"
+      "No matter how you feel,",
+      "get up, dress up, and show up."
     ],
-    transliteration: [
-      "Hazaaron khwahishein aisi ke har khwahish pe dam nikle",
-      "Bahut nikle mire armaan lekin phir bhi kam nikle"
-    ],
-    translation: "Thousands of profound desires, each worth dying for; many of my ambitions were fulfilled, yet a vast horizon remains.",
-    poet: "Mirza Ghalib",
-    theme: "Boundless Ambition"
+    translation: "Discipline means honoring your potential regardless of temporary moods. Showing up consistently with pride is how greatness is built."
   },
   {
     id: 6,
     lines: [
-      "उड़ान वालों के लिए आसमाँ कम पड़ जाते हैं",
-      "जो हौसले से जीते हैं वो इतिहास बदल जाते हैं"
+      "When in doubt, just take the next small step."
     ],
-    transliteration: [
-      "Udaan walon ke liye aasmaan kam pad jaate hain",
-      "Jo hausle se jeete hain wo itihaas badal jaate hain"
-    ],
-    translation: "For those destined to soar, skies prove too small; those who live with relentless spirit write the course of history.",
-    poet: "Rahat Indori",
-    theme: "Fearless Spirit"
+    translation: "Overthinking paralyzes, but action brings clarity. You don't need to see the entire path ahead to take one courageous step forward."
   },
   {
     id: 7,
     lines: [
-      "तू शाहीं है परवाज़ है काम तेरा",
-      "तेरे सामने आसमाँ और भी हैं"
+      "You can’t go back and change the beginning,",
+      "but you can start where you are and change the ending."
     ],
-    transliteration: [
-      "Tu shaheen hai parwaaz hai kaam tera",
-      "Tere saamne aasmaan aur bhi hain"
-    ],
-    translation: "You are a falcon; flight is your sole nature and duty; beyond this horizon, infinite skies await you.",
-    poet: "Allama Iqbal",
-    theme: "High Aspirations"
+    translation: "Your past does not define your destiny. The power to write an extraordinary conclusion begins with the decisions you make right now."
   },
   {
     id: 8,
     lines: [
-      "लहरों से डर कर नौका पार नहीं होती",
-      "कोशिश करने वालों की कभी हार नहीं होती"
+      "Make peace with your past,",
+      "so it won’t screw up the present."
     ],
-    transliteration: [
-      "Lehron se darr kar nauka paar nahi hoti",
-      "Koshish karne walon ki kabhi haar nahi hoti"
-    ],
-    translation: "A boat never crosses the ocean fearing the waves; those who persist relentlessly never meet defeat.",
-    poet: "Harivansh Rai Bachchan",
-    theme: "Unrelenting Effort"
+    translation: "Carrying resentment and regret drains the energy needed for today. Forgive, release what was, and step fully into the present."
   },
   {
     id: 9,
     lines: [
-      "नन्ही चींटी जब दाना लेकर चलती है",
-      "चढ़ती दीवारों पर, सौ बार फिसलती है",
-      "मन का विश्वास रगों में साहस भरता है",
-      "चढ़कर गिरना, गिरकर चढ़ना न अखरता है"
+      "What other people think of you is none of your business."
     ],
-    transliteration: [
-      "Nanhi cheenti jab daana lekar chalti hai",
-      "Chadhti deewaron par, sau baar phisalti hai",
-      "Man ka vishwas ragon mein saahas bharta hai",
-      "Chadkhar girna, girkar chadhna na akharta hai"
-    ],
-    translation: "When the tiny ant climbs the wall with a grain, it slips a hundred times; its inner conviction infuses bravery in its veins, making every fall a prelude to rising higher.",
-    poet: "Sohan Lal Dwivedi",
-    theme: "Patience & Consistency"
+    translation: "Others judge through the lens of their own projections and insecurities. Protect your inner peace by refusing to seek external validation."
   },
   {
     id: 10,
     lines: [
-      "जो तूफ़ानों में पलते जा रहे हैं",
-      "वही दुनिया बदलते जा रहे हैं"
+      "Envy is a waste of time.",
+      "Accept what you already have, not what you think you need."
     ],
-    transliteration: [
-      "Jo toofaanon mein palate jaa rahe hain",
-      "Wahi duniya badalte jaa rahe hain"
-    ],
-    translation: "Those who are nurtured within fierce storms are the ones continuously transforming the world.",
-    poet: "Jigar Moradabadi",
-    theme: "Mastery in Adversity"
+    translation: "Comparison steals joy. True abundance is found not in accumulating more, but in wholeheartedly valuing the blessings already in your life."
   },
   {
     id: 11,
     lines: [
-      "सितारों से आगे जहाँ और भी हैं",
-      "अभी इश्क़ के इम्तिहाँ और भी हैं"
+      "Take a deep breath, it calms the mind."
     ],
-    transliteration: [
-      "Sitaron se aage jahaan aur bhi hain",
-      "Abhi ishq ke imtihaan aur bhi hain"
-    ],
-    translation: "Beyond the stars lie countless new universes; there are still higher tests and greater milestones awaiting your passion.",
-    poet: "Allama Iqbal",
-    theme: "Lifelong Pursuit"
+    translation: "A single mindful, deep breath anchors you in stillness, dissolving anxiety and resetting your clarity in times of tension."
   },
   {
     id: 12,
     lines: [
-      "वक़्त से लड़कर जो नसीब बदल दे",
-      "इंसान वही जो अपनी तक़दीर बदल दे"
+      "Don’t buy stuff you don’t need."
     ],
-    transliteration: [
-      "Waqt se ladkar jo naseeb badal de",
-      "Insaan wahi jo apni taqdeer badal de"
-    ],
-    translation: "One who wrestles with time and shifts fortune; true greatness belongs to the one who rewrites their own destiny.",
-    poet: "Traditional Couplet",
-    theme: "Destiny by Work"
+    translation: "Material clutter burdens both your finances and your mental space. Master intentional simplicity to keep your life light and focused."
   },
   {
     id: 13,
     lines: [
-      "रुकावटें आती हैं सफलता की राहों में ये कौन नहीं जानता",
-      "फिर भी वो मंज़िल पा ही लेता है जो हार नहीं मानता"
+      "Save money for the things that matter."
     ],
-    transliteration: [
-      "Rukawatein aati hain safalta ki raahon mein ye kaun nahi jaanta",
-      "Phir bhi wo manzil paa hi leta hai jo haar nahi maanta"
-    ],
-    translation: "Who doesn't know that hurdles line the avenues of success? Yet the destination is claimed solely by the one who refuses to yield.",
-    poet: "Inspiring Sher",
-    theme: "Indomitable Will"
+    translation: "Financial discipline grants freedom, security, and peace of mind. Prioritize long-term stability and purpose over short-term impulse."
   },
   {
     id: 14,
     lines: [
-      "कर्म भूमि की दुनिया में श्रम सभी को करना है",
-      "भगवान सिर्फ लकीरें देता है रंग हमें ही भरना है"
+      "Your job won’t take care of you when you are sick.",
+      "Your friends and family will."
     ],
-    transliteration: [
-      "Karm bhoomi ki duniya mein shram sabhi ko karna hai",
-      "Bhagwan sirf lakeerein deta hai rang humein hi bharna hai"
-    ],
-    translation: "In this realm of action, toil is the duty of all; God only outlines the sketch, the vibrant colors must be filled by our own sweat.",
-    poet: "Philosophical Sher",
-    theme: "Diligence & Creation"
+    translation: "Work earns a living, but love gives life meaning. Always prioritize your health and nurture the people who truly stand by you."
   },
   {
     id: 15,
     lines: [
-      "रास्ते कहाँ ख़त्म होते हैं ज़िंदगी के सफ़र में",
-      "मंज़िल तो वहाँ है जहाँ ख़्वाहिशें थम जाएँ"
+      "You don’t have to win every argument.",
+      "Just stay true to yourself."
     ],
-    transliteration: [
-      "Raaste kahan khatm hote hain zindagi ke safar mein",
-      "Manzil to wahan hai jahan khwahishein tham jaayein"
-    ],
-    translation: "Paths never terminate along the journey of life; true arrival is when your relentless pursuit culminates in inner stillness and victory.",
-    poet: "Kaifi Azmi",
-    theme: "The Lifelong Odyssey"
+    translation: "Preserving your peace and personal integrity is far superior to feeding the ego with useless debates. Let your character speak for itself."
   },
   {
     id: 16,
     lines: [
-      "हौसले के तरकश में कोशिश का वो तीर ज़िंदा रख",
-      "हार जा चाहे ज़िंदगी में सब कुछ मगर फिर से जीतने की उम्मीद ज़िंदा रख"
+      "Believe in miracles."
     ],
-    transliteration: [
-      "Hausle ke tarkash mein koshish ka wo teer zinda rakh",
-      "Haar ja chahe zindagi mein sab kuch magar phir se jeetne ki umeed zinda rakh"
-    ],
-    translation: "Keep the arrow of attempt alive in courage's quiver; even if you lose everything, keep alive the flame to win once more.",
-    poet: "Modern Classical",
-    theme: "Hope & Tenacity"
+    translation: "Keep your heart open to wonder and unexpected grace. When you maintain belief, life reveals breakthroughs beyond ordinary logic."
   },
   {
     id: 17,
     lines: [
-      "जब इरादा बना लिया ऊँची उड़ान का",
-      "फिर देखना फ़िज़ूल है क़द आसमान का"
+      "Get outside every day,",
+      "miracles are waiting everywhere."
     ],
-    transliteration: [
-      "Jab iraada bana liya oonchi udaan ka",
-      "Phir dekhna fizool hai qad aasmaan ka"
-    ],
-    translation: "Once the decisive resolution for soaring high is made, measuring the sky's vast height is entirely irrelevant.",
-    poet: "Dushyant Kumar",
-    theme: "Pure Determination"
+    translation: "Nature heals and revitalizes the mind. Stepping outside expands your perspective and connects you with the vibrant rhythm of the living world."
   },
   {
     id: 18,
     lines: [
-      "मेहनत इतनी ख़ामोशी से करो",
-      "कि तुम्हारी सफलता शोर मचा दे"
+      "What you believe, you become."
     ],
-    transliteration: [
-      "Mehnat itni khamoshi se karo",
-      "Ke tumhari safalta shor macha de"
-    ],
-    translation: "Toil in profound silence, until your accomplishments roar across the world.",
-    poet: "Timeless Adage",
-    theme: "Quiet Focus"
+    translation: "Your deepest internal convictions determine your daily choices, habits, and reality. Cultivate empowering beliefs to realize an empowering life."
   },
   {
     id: 19,
     lines: [
-      "मिटा दे अपनी हस्ती को अगर कुछ मर्तबा चाहे",
-      "कि दाना ख़ाक में मिलकर गुले-गुलज़ार होता है"
+      "Whether you think you can, or you think you can’t —",
+      "you’re right."
     ],
-    transliteration: [
-      "Mita de apni hasti ko agar kuch martaba chaahe",
-      "Ke daana khaak mein milkar gule-gulzaar hota hai"
-    ],
-    translation: "Surrender your ego if you yearn for true distinction; for a seed only becomes a blooming garden once it buries itself in the soil.",
-    poet: "Iqbal Azeem",
-    theme: "Sacrifice & Growth"
+    translation: "Your attitude sets the ceiling for your capability. When your mindset is resolute, challenges transform into stepping stones."
   },
   {
     id: 20,
     lines: [
-      "सूरज की तरह चमकना है अगर तो",
-      "पहले सूरज की तरह जलना सीखो"
+      "Your only limit is your mind."
     ],
-    transliteration: [
-      "Sooraj ki tarah chamakna hai agar to",
-      "Pehle sooraj ki tarah jalna seekho"
-    ],
-    translation: "If your vision is to radiate like the morning sun, first learn to embrace the heat of discipline like the sun.",
-    poet: "A.P.J. Kalam (Sher adaptation)",
-    theme: "Daily Discipline"
+    translation: "Most obstacles exist only as self-imposed doubts. When you liberate your mind from fear, your true potential has no boundaries."
   },
   {
     id: 21,
     lines: [
-      "आँखों में जीत के सपने हैं, ऐसा लगता है अब ज़िंदगी के हर पल अपने हैं",
-      "न रुकना है न झुकना है, बस मंज़िल की ओर बढ़ते रहना है"
+      "If you don’t sacrifice for what you want,",
+      "what you want becomes the sacrifice."
     ],
-    transliteration: [
-      "Aankhon mein jeet ke sapne hain, aisa lagta hai ab zindagi ke har pal apne hain",
-      "Na rukna hai na jhukna hai, bas manzil ki ore badhte rehna hai"
-    ],
-    translation: "With dreams of victory in my eyes, every moment feels sovereign; neither halt nor bow, keep pressing forward toward the summit.",
-    poet: "Contemporary Inspiration",
-    theme: "Momentum"
-  },
-  {
-    id: 22,
-    lines: [
-      "ग़ैर मुमकिन को मुमकिन बनाना ही तो हुनर है",
-      "हर रात के बाद एक रौशन सहर है"
-    ],
-    transliteration: [
-      "Ghair mumkin ko mumkin banana hi to hunar hai",
-      "Har raat ke baad ek raushan sehar hai"
-    ],
-    translation: "Converting the impossible into reality is the true art; behind every midnight lies the radiant glow of sunrise.",
-    poet: "Faiz Ahmad Faiz",
-    theme: "Optimism & Vision"
+    translation: "Every worthwhile dream demands giving up short-term comfort and trivial distractions. Choose the price of discipline over the price of regret."
   }
 ];
 

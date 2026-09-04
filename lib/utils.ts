@@ -52,6 +52,42 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
+export function sendNotificationSafe(title: string, options?: NotificationOptions) {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then((reg) => {
+          if (reg && typeof reg.showNotification === 'function') {
+            reg.showNotification(title, options).catch(() => {
+              tryFallbackNotification(title, options);
+            });
+          } else {
+            tryFallbackNotification(title, options);
+          }
+        })
+        .catch(() => {
+          tryFallbackNotification(title, options);
+        });
+      return;
+    }
+  } catch {
+    // Fall back to direct constructor
+  }
+
+  tryFallbackNotification(title, options);
+}
+
+function tryFallbackNotification(title: string, options?: NotificationOptions) {
+  try {
+    new Notification(title, options);
+  } catch (e) {
+    console.warn('Notification not permitted or blocked in this environment', e);
+  }
+}
+
 export function playTimerEndSound(soundType: PomodoroSoundType = 'bell', volume: number = 0.8) {
   if (typeof window === 'undefined') return;
 
@@ -60,7 +96,7 @@ export function playTimerEndSound(soundType: PomodoroSoundType = 'bell', volume:
     if (!audioCtx) return;
 
     if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().catch(() => {});
     }
 
     const masterGain = audioCtx.createGain();

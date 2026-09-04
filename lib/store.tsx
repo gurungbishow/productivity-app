@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog, PomodoroMode, GlobalPomodoroState } from './types';
 import { DEFAULT_SCHEDULE, parseTimeToMinutes } from './scheduleEngine';
-import { triggerConfetti, playTimerEndSound } from './utils';
+import { triggerConfetti, playTimerEndSound, sendNotificationSafe } from './utils';
 
 interface AppContextType {
   isLoaded: boolean;
@@ -191,19 +191,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedTimerState) {
         const parsed = JSON.parse(savedTimerState) as GlobalPomodoroState;
         
-        let initialDisplay = parsed.durationSeconds;
+        let initialDisplay = parsed.durationSeconds > 0 ? parsed.durationSeconds : (DEFAULT_SETTINGS.workMinutes * 60);
         
         if (parsed.status === 'running' && parsed.endTime) {
           const remainingMs = parsed.endTime - Date.now();
           if (remainingMs > 0) {
             initialDisplay = Math.ceil(remainingMs / 1000);
           } else {
-            // Already finished offline
-            initialDisplay = 0;
+            // Timer expired while app/browser was closed or asleep
+            parsed.status = 'idle';
+            parsed.endTime = null;
+            parsed.pausedRemainingSeconds = null;
+            parsed.notificationSent = false;
+            initialDisplay = parsed.durationSeconds > 0 ? parsed.durationSeconds : (DEFAULT_SETTINGS.workMinutes * 60);
           }
-        } else if (parsed.status === 'paused' && parsed.pausedRemainingSeconds !== null) {
-          initialDisplay = parsed.pausedRemainingSeconds;
+        } else if (parsed.status === 'paused') {
+          if (parsed.pausedRemainingSeconds !== null && parsed.pausedRemainingSeconds > 0) {
+            initialDisplay = parsed.pausedRemainingSeconds;
+          } else {
+            parsed.status = 'idle';
+            parsed.pausedRemainingSeconds = null;
+            initialDisplay = parsed.durationSeconds > 0 ? parsed.durationSeconds : (DEFAULT_SETTINGS.workMinutes * 60);
+          }
         }
+
+        // Always unlatch notificationSent on fresh load
+        parsed.notificationSent = false;
 
         setTimerState(parsed);
         setDisplayTime(initialDisplay);
@@ -433,34 +446,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Latch synchronously to prevent duplicate calls during the 250ms tick interval
     timerStateRef.current = { ...timerStateRef.current, notificationSent: true };
 
-    if (pomodoroSettings.soundEnabled) {
-      playTimerEndSound(pomodoroSettings.soundType, pomodoroSettings.soundVolume);
-    }
-    
     const maxSessions = pomodoroSettings.longBreakInterval || 4;
 
     if (state.mode === 'work') {
-      recordFocusSession(pomodoroSettings.workMinutes, 'work', activeTaskRef.current || 'Self Directed Focus');
-      triggerConfetti();
-      
       const currentSession = state.sessionNumber;
       const isLongBreak = currentSession >= maxSessions;
       const nextMode: PomodoroMode = isLongBreak ? 'long_break' : 'short_break';
       const nextDuration = (isLongBreak ? pomodoroSettings.longBreakMinutes : pomodoroSettings.shortBreakMinutes) * 60;
       const shouldAutoStart = Boolean(pomodoroSettings.autoStartBreaks);
 
-      const nextStatus = shouldAutoStart ? 'running' : 'idle';
+      const nextStatus: 'running' | 'idle' = shouldAutoStart ? 'running' : 'idle';
       const nextEndTime = shouldAutoStart ? Date.now() + nextDuration * 1000 : null;
 
-      // Web Notification
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const title = isLongBreak ? 'Focus Milestone Reached! 🌟' : 'Focus Sprint Complete! 🎉';
-        const body = isLongBreak
-          ? `Session ${currentSession} of ${maxSessions} complete. ${shouldAutoStart ? 'Long break timer started.' : 'Time for a long break.'}`
-          : `Session ${currentSession} of ${maxSessions} complete. ${shouldAutoStart ? 'Break timer started.' : 'Take a short break.'}`;
-        new Notification(title, { body, icon: '/icon-192x192.png' });
-      }
-      
+      // 1. Guaranteed state transition first
       setTimerState(prev => ({
         ...prev,
         status: nextStatus,
@@ -473,11 +471,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
       setDisplayTime(nextDuration);
 
+      // 2. Safe side-effects (cannot crash or block the timer)
+      try {
+        recordFocusSession(pomodoroSettings.workMinutes, 'work', activeTaskRef.current || 'Self Directed Focus');
+      } catch (e) {
+        console.error('Failed to record focus session', e);
+      }
+
+      try {
+        triggerConfetti();
+      } catch (e) {
+        console.error('Failed to trigger confetti', e);
+      }
+
+      if (pomodoroSettings.soundEnabled) {
+        try {
+          playTimerEndSound(pomodoroSettings.soundType, pomodoroSettings.soundVolume);
+        } catch (e) {
+          console.error('Failed to play timer end sound', e);
+        }
+      }
+
+      const title = isLongBreak ? 'Focus Milestone Reached! 🌟' : 'Focus Sprint Complete! 🎉';
+      const body = isLongBreak
+        ? `Session ${currentSession} of ${maxSessions} complete. ${shouldAutoStart ? 'Long break timer started.' : 'Time for a long break.'}`
+        : `Session ${currentSession} of ${maxSessions} complete. ${shouldAutoStart ? 'Break timer started.' : 'Take a short break.'}`;
+      sendNotificationSafe(title, { body, icon: '/icon-192x192.png' });
+
     } else {
       const breakDuration = state.mode === 'short_break' ? pomodoroSettings.shortBreakMinutes : pomodoroSettings.longBreakMinutes;
-      recordFocusSession(breakDuration, state.mode, activeTaskRef.current || 'Self Directed Focus');
-      
-      // If short break: increment session count. If long break: reset cycle back to 1.
       const nextSession = state.mode === 'short_break' && state.sessionNumber < maxSessions
         ? state.sessionNumber + 1
         : 1;
@@ -485,16 +507,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const nextDuration = pomodoroSettings.workMinutes * 60;
       const shouldAutoStart = Boolean(pomodoroSettings.autoStartFocus);
 
-      const nextStatus = shouldAutoStart ? 'running' : 'idle';
+      const nextStatus: 'running' | 'idle' = shouldAutoStart ? 'running' : 'idle';
       const nextEndTime = shouldAutoStart ? Date.now() + nextDuration * 1000 : null;
 
-      // Web Notification
-      if ('Notification' in window && Notification.permission === 'granted') {
-        const title = state.mode === 'long_break' ? 'Cycle Reset! 🚀' : 'Break Finished! ⚡';
-        const body = `Starting Focus Session ${nextSession} of ${maxSessions}. ${shouldAutoStart ? 'Focus timer running!' : 'Ready when you are.'}`;
-        new Notification(title, { body, icon: '/icon-192x192.png' });
-      }
-
+      // 1. Guaranteed state transition first
       setTimerState(prev => ({
         ...prev,
         status: nextStatus,
@@ -506,6 +522,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         notificationSent: false
       }));
       setDisplayTime(nextDuration);
+
+      // 2. Safe side-effects
+      try {
+        recordFocusSession(breakDuration, state.mode, activeTaskRef.current || 'Self Directed Focus');
+      } catch (e) {
+        console.error('Failed to record break session', e);
+      }
+
+      if (pomodoroSettings.soundEnabled) {
+        try {
+          playTimerEndSound(pomodoroSettings.soundType, pomodoroSettings.soundVolume);
+        } catch (e) {
+          console.error('Failed to play timer end sound', e);
+        }
+      }
+
+      const title = state.mode === 'long_break' ? 'Cycle Reset! 🚀' : 'Break Finished! ⚡';
+      const body = `Starting Focus Session ${nextSession} of ${maxSessions}. ${shouldAutoStart ? 'Focus timer running!' : 'Ready when you are.'}`;
+      sendNotificationSafe(title, { body, icon: '/icon-192x192.png' });
     }
   }, [pomodoroSettings, recordFocusSession]);
 
@@ -573,11 +608,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Control Actions
   const startTimer = useCallback(async () => {
-    await requestNotificationPermission();
+    try {
+      await requestNotificationPermission();
+    } catch {}
     
     let duration = timerState.durationSeconds;
-    if (timerState.status === 'paused' && timerState.pausedRemainingSeconds !== null) {
+    if (timerState.status === 'paused' && timerState.pausedRemainingSeconds !== null && timerState.pausedRemainingSeconds > 0) {
       duration = timerState.pausedRemainingSeconds;
+    } else if (duration <= 0) {
+      duration = getModeDurationSeconds(timerState.mode);
     }
     
     const endTime = Date.now() + duration * 1000;
@@ -585,11 +624,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTimerState(prev => ({
       ...prev,
       status: 'running',
+      durationSeconds: duration,
       endTime,
       pausedRemainingSeconds: null,
       notificationSent: false
     }));
-  }, [timerState.durationSeconds, timerState.status, timerState.pausedRemainingSeconds]);
+    setDisplayTime(duration);
+  }, [timerState.durationSeconds, timerState.status, timerState.pausedRemainingSeconds, timerState.mode, getModeDurationSeconds]);
 
   const pauseTimer = useCallback(() => {
     if (timerState.status !== 'running' || !timerState.endTime) return;

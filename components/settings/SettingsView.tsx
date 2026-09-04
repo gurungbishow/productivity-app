@@ -17,9 +17,7 @@ import {
   Volume2,
   VolumeX,
   Play,
-  Sparkles,
-  Zap,
-  Repeat
+  Zap
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { supabase } from '@/lib/supabase';
