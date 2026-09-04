@@ -11,8 +11,61 @@ import {
 } from 'lucide-react';
 
 export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
-  const { profile, timerState, displayTime } = useAppStore();
+  const { profile, timerState, displayTime, syncStatus, syncNow, lastSyncedAt } = useAppStore();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+  // Cloud sync appearance
+  let cloudBadge = {
+    dotBg: 'bg-emerald-400',
+    dotGlow: 'shadow-[0_0_8px_rgba(52,211,153,0.8)]',
+    badgeBg: 'bg-emerald-500/10 border-emerald-500/25',
+    textGradient: 'from-emerald-200 via-teal-200 to-emerald-300',
+    text: 'Synced',
+    title: lastSyncedAt ? `Synced with Supabase (${new Date(lastSyncedAt).toLocaleTimeString()})` : 'Synced with Supabase',
+    pulse: true,
+  };
+
+  if (syncStatus === 'syncing') {
+    cloudBadge = {
+      dotBg: 'bg-cyan-400',
+      dotGlow: 'shadow-[0_0_8px_rgba(34,211,238,0.8)]',
+      badgeBg: 'bg-cyan-500/10 border-cyan-500/25',
+      textGradient: 'from-cyan-200 via-sky-200 to-blue-300',
+      text: 'Syncing',
+      title: 'Syncing routine & settings...',
+      pulse: true,
+    };
+  } else if (syncStatus === 'table_missing') {
+    cloudBadge = {
+      dotBg: 'bg-amber-400',
+      dotGlow: 'shadow-[0_0_8px_rgba(251,191,36,0.8)]',
+      badgeBg: 'bg-amber-500/15 border-amber-500/35',
+      textGradient: 'from-amber-200 via-orange-200 to-yellow-300',
+      text: 'Setup DB',
+      title: 'Database table missing - Open Settings to view SQL setup',
+      pulse: true,
+    };
+  } else if (syncStatus === 'error') {
+    cloudBadge = {
+      dotBg: 'bg-rose-400',
+      dotGlow: 'shadow-[0_0_8px_rgba(251,113,133,0.8)]',
+      badgeBg: 'bg-rose-500/15 border-rose-500/35',
+      textGradient: 'from-rose-200 via-pink-200 to-rose-300',
+      text: 'Offline',
+      title: 'Cloud sync offline - tap to retry',
+      pulse: false,
+    };
+  } else if (syncStatus === 'local_only') {
+    cloudBadge = {
+      dotBg: 'bg-slate-400',
+      dotGlow: 'shadow-none',
+      badgeBg: 'bg-slate-500/10 border-slate-500/25',
+      textGradient: 'from-slate-300 to-slate-400',
+      text: 'Local',
+      title: 'Saved locally - sign in to enable cloud sync',
+      pulse: false,
+    };
+  }
 
   useEffect(() => {
     // Use a short timeout for the initial set to avoid synchronous set-state-in-effect warning
@@ -134,12 +187,17 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
 
         {/* Right: Cloud Status Pill (pinned to top) & Reserved Timer Badge slot below */}
         <div className="shrink-0 flex flex-col items-end justify-between h-[46px]">
-          <span className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full ${iconTheme.badgeBg} border text-[10px] uppercase tracking-wider font-black ${iconTheme.glow}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${iconTheme.dotBg} animate-pulse ${iconTheme.dotGlow}`} />
-            <span className={`bg-gradient-to-r ${iconTheme.textGradient} bg-clip-text text-transparent font-black`}>
-              Cloud
+          <button
+            type="button"
+            onClick={() => syncNow()}
+            title={cloudBadge.title}
+            className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full ${cloudBadge.badgeBg} border text-[10px] uppercase tracking-wider font-black active:scale-95 transition-all cursor-pointer`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${cloudBadge.dotBg} ${cloudBadge.pulse ? 'animate-pulse' : ''} ${cloudBadge.dotGlow}`} />
+            <span className={`bg-gradient-to-r ${cloudBadge.textGradient} bg-clip-text text-transparent font-black`}>
+              {cloudBadge.text}
             </span>
-          </span>
+          </button>
 
           <div className="h-[21px] flex items-center justify-end">
             {showTimerBadge && (

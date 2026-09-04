@@ -17,8 +17,8 @@ My Routine is a beautifully designed, premium productivity web application built
 - **Language**: TypeScript
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
-- **State Management**: React Context API + LocalStorage
-- **Authentication**: [Supabase Auth](https://supabase.com/)
+- **State Management**: React Context API + LocalStorage + Supabase Cloud Sync
+- **Authentication & Database**: [Supabase](https://supabase.com/) (Auth + Postgres Database)
 
 ## Getting Started
 
@@ -40,12 +40,15 @@ Ensure you have Node.js and npm installed on your machine.
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-3. Run the development server:
+3. Set up the Database Schema (for cross-device synchronization):
+   Open your Supabase project dashboard, navigate to **SQL Editor**, and run the SQL script found in `supabase/schema.sql`.
+
+4. Run the development server:
    ```bash
    npm run dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the app.
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the app.
 
 ## Project Structure
 

@@ -4,6 +4,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog, PomodoroMode, GlobalPomodoroState } from './types';
 import { DEFAULT_SCHEDULE, parseTimeToMinutes } from './scheduleEngine';
 import { triggerConfetti, playTimerEndSound, sendNotificationSafe } from './utils';
+import { useAuth } from './authContext';
+import {
+  fetchUserDataFromCloud,
+  saveUserDataToCloud,
+  subscribeToUserDataChanges,
+  SyncStatus,
+  UserDataPayload,
+} from './syncService';
 
 interface AppContextType {
   isLoaded: boolean;
@@ -38,6 +46,13 @@ interface AppContextType {
   resetTimer: () => void;
   skipSession: () => void;
   changeMode: (mode: PomodoroMode) => void;
+  // Cloud sync properties
+  syncStatus: SyncStatus;
+  lastSyncedAt: string | null;
+  syncError: string | null;
+  syncNow: () => Promise<void>;
+  uploadToCloud: () => Promise<boolean>;
+  downloadFromCloud: () => Promise<boolean>;
 }
 
 const STORAGE_KEYS = {
@@ -304,6 +319,363 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error(e);
     }
   }, [timerState, isLoaded]);
+
+  // --- Cloud Sync Integration ---
+  const { user, isLoadingAuth } = useAuth();
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const syncStatusRef = useRef<SyncStatus>(syncStatus);
+  useEffect(() => {
+    syncStatusRef.current = syncStatus;
+  }, [syncStatus]);
+
+  // Keep live refs of current values to avoid stale closures in sync callbacks
+  const profileRef = useRef(profile);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
+
+  const scheduleRef = useRef(schedule);
+  useEffect(() => { scheduleRef.current = schedule; }, [schedule]);
+
+  const userDefaultScheduleRef = useRef(userDefaultSchedule);
+  useEffect(() => { userDefaultScheduleRef.current = userDefaultSchedule; }, [userDefaultSchedule]);
+
+  const completedTaskIdsRef = useRef(completedTaskIds);
+  useEffect(() => { completedTaskIdsRef.current = completedTaskIds; }, [completedTaskIds]);
+
+  const focusLogsRef = useRef(focusLogs);
+  useEffect(() => { focusLogsRef.current = focusLogs; }, [focusLogs]);
+
+  const pomodoroSettingsRef = useRef(pomodoroSettings);
+  useEffect(() => { pomodoroSettingsRef.current = pomodoroSettings; }, [pomodoroSettings]);
+
+  const favoriteShayariIdsRef = useRef(favoriteShayariIds);
+  useEffect(() => { favoriteShayariIdsRef.current = favoriteShayariIds; }, [favoriteShayariIds]);
+
+  const isHydratingFromRemoteRef = useRef(false);
+  const initialCloudLoadDoneRef = useRef(false);
+
+  // Hydrate from Cloud when authenticated
+  const hydrateFromCloud = useCallback(async (userId: string) => {
+    setSyncStatus('syncing');
+    setSyncError(null);
+
+    const result = await fetchUserDataFromCloud(userId);
+
+    if (result.status === 'table_missing') {
+      setSyncStatus('table_missing');
+      setSyncError(result.error || 'Database table public.user_data not found in Supabase.');
+      initialCloudLoadDoneRef.current = true;
+      return;
+    }
+
+    if (result.status === 'error') {
+      setSyncStatus('error');
+      setSyncError(result.error || 'Failed to connect to Supabase.');
+      initialCloudLoadDoneRef.current = true;
+      return;
+    }
+
+    if (result.status === 'no_client') {
+      setSyncStatus('local_only');
+      initialCloudLoadDoneRef.current = true;
+      return;
+    }
+
+    if (result.status === 'not_found') {
+      // First time user in database!
+      // If this device has local schedule items (e.g. created on mobile), upload immediately!
+      const currentSchedule = scheduleRef.current;
+      const currentDefault = userDefaultScheduleRef.current;
+      if (currentSchedule.length > 0 || currentDefault.length > 0) {
+        const payload: UserDataPayload = {
+          profile: profileRef.current,
+          schedule: currentSchedule,
+          user_default_schedule: currentDefault,
+          completed_tasks: { date: getTodayString(), ids: completedTaskIdsRef.current },
+          focus_logs: focusLogsRef.current,
+          pomodoro_settings: pomodoroSettingsRef.current,
+          favorite_shayari_ids: favoriteShayariIdsRef.current,
+        };
+        const saveRes = await saveUserDataToCloud(userId, payload);
+        if (saveRes.status === 'success') {
+          setSyncStatus('synced');
+          setLastSyncedAt(saveRes.updatedAt || new Date().toISOString());
+        } else if (saveRes.status === 'table_missing') {
+          setSyncStatus('table_missing');
+          setSyncError(saveRes.error || 'Database table missing');
+        } else {
+          setSyncStatus('error');
+        }
+      } else {
+        setSyncStatus('synced');
+        setLastSyncedAt(new Date().toISOString());
+      }
+      initialCloudLoadDoneRef.current = true;
+      return;
+    }
+
+    if (result.status === 'success' && result.data) {
+      const cloudData = result.data;
+      const localSchedule = scheduleRef.current;
+
+      // Smart check: If local has items (e.g. mobile created routine), but cloud has 0 items:
+      if (localSchedule.length > 0 && cloudData.schedule.length === 0) {
+        // Push local schedule up to cloud to protect mobile data
+        const payload: UserDataPayload = {
+          profile: profileRef.current,
+          schedule: localSchedule,
+          user_default_schedule: userDefaultScheduleRef.current.length > 0 ? userDefaultScheduleRef.current : cloudData.user_default_schedule,
+          completed_tasks: { date: getTodayString(), ids: completedTaskIdsRef.current },
+          focus_logs: focusLogsRef.current.length > 0 ? focusLogsRef.current : cloudData.focus_logs,
+          pomodoro_settings: pomodoroSettingsRef.current,
+          favorite_shayari_ids: favoriteShayariIdsRef.current.length > 0 ? favoriteShayariIdsRef.current : cloudData.favorite_shayari_ids,
+        };
+        await saveUserDataToCloud(userId, payload);
+        setSyncStatus('synced');
+        setLastSyncedAt(new Date().toISOString());
+      } else {
+        // Cloud has schedule: Hydrate local state from cloud!
+        isHydratingFromRemoteRef.current = true;
+
+        if (cloudData.profile && cloudData.profile.name) {
+          setProfile(prev => ({ ...prev, ...cloudData.profile }));
+        }
+        if (Array.isArray(cloudData.schedule)) {
+          setSchedule(cloudData.schedule);
+        }
+        if (Array.isArray(cloudData.user_default_schedule)) {
+          setUserDefaultSchedule(cloudData.user_default_schedule);
+        }
+        if (cloudData.completed_tasks && cloudData.completed_tasks.date === getTodayString()) {
+          setCompletedTaskIds(cloudData.completed_tasks.ids || []);
+        }
+        if (Array.isArray(cloudData.focus_logs) && cloudData.focus_logs.length > 0) {
+          setFocusLogs(cloudData.focus_logs);
+        }
+        if (cloudData.pomodoro_settings && Object.keys(cloudData.pomodoro_settings).length > 0) {
+          setPomodoroSettings(prev => ({ ...prev, ...cloudData.pomodoro_settings }));
+        }
+        if (Array.isArray(cloudData.favorite_shayari_ids)) {
+          setFavoriteShayariIds(cloudData.favorite_shayari_ids);
+        }
+
+        setTimeout(() => {
+          isHydratingFromRemoteRef.current = false;
+        }, 500);
+
+        setSyncStatus('synced');
+        setLastSyncedAt(cloudData.updated_at || new Date().toISOString());
+      }
+      initialCloudLoadDoneRef.current = true;
+    }
+  }, []);
+
+  // Initial fetch on login / auth resolution
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (user && isLoaded) {
+      hydrateFromCloud(user.id);
+    } else if (!user) {
+      setSyncStatus('local_only');
+      initialCloudLoadDoneRef.current = false;
+    }
+  }, [user, isLoadingAuth, isLoaded, hydrateFromCloud]);
+
+  // Realtime subscription for cross-device updates
+  useEffect(() => {
+    if (!user || syncStatus === 'table_missing') return;
+
+    const unsubscribe = subscribeToUserDataChanges(user.id, (remoteData) => {
+      isHydratingFromRemoteRef.current = true;
+      if (Array.isArray(remoteData.schedule)) {
+        setSchedule(remoteData.schedule);
+      }
+      if (Array.isArray(remoteData.user_default_schedule)) {
+        setUserDefaultSchedule(remoteData.user_default_schedule);
+      }
+      if (remoteData.profile && remoteData.profile.name) {
+        setProfile(prev => ({ ...prev, ...remoteData.profile }));
+      }
+      if (remoteData.completed_tasks && remoteData.completed_tasks.date === getTodayString()) {
+        setCompletedTaskIds(remoteData.completed_tasks.ids || []);
+      }
+      if (Array.isArray(remoteData.focus_logs)) {
+        setFocusLogs(remoteData.focus_logs);
+      }
+      if (remoteData.pomodoro_settings && Object.keys(remoteData.pomodoro_settings).length > 0) {
+        setPomodoroSettings(prev => ({ ...prev, ...remoteData.pomodoro_settings }));
+      }
+      if (Array.isArray(remoteData.favorite_shayari_ids)) {
+        setFavoriteShayariIds(remoteData.favorite_shayari_ids);
+      }
+
+      setSyncStatus('synced');
+      setLastSyncedAt(remoteData.updated_at || new Date().toISOString());
+
+      setTimeout(() => {
+        isHydratingFromRemoteRef.current = false;
+      }, 500);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, syncStatus]);
+
+  // Auto-sync debounced changes to Supabase
+  useEffect(() => {
+    if (!isLoaded || !user || !initialCloudLoadDoneRef.current || isHydratingFromRemoteRef.current) {
+      return;
+    }
+    if (syncStatusRef.current === 'table_missing') return;
+
+    const debounceTimer = setTimeout(async () => {
+      setSyncStatus('syncing');
+      const payload: UserDataPayload = {
+        profile,
+        schedule,
+        user_default_schedule: userDefaultSchedule,
+        completed_tasks: { date: getTodayString(), ids: completedTaskIds },
+        focus_logs: focusLogs,
+        pomodoro_settings: pomodoroSettings,
+        favorite_shayari_ids: favoriteShayariIds,
+      };
+
+      const res = await saveUserDataToCloud(user.id, payload);
+      if (res.status === 'success') {
+        setSyncStatus('synced');
+        setLastSyncedAt(res.updatedAt || new Date().toISOString());
+        setSyncError(null);
+      } else if (res.status === 'table_missing') {
+        setSyncStatus('table_missing');
+        setSyncError(res.error || 'Table public.user_data missing in Supabase');
+      } else if (res.status === 'error') {
+        setSyncStatus('error');
+        setSyncError(res.error || 'Failed to sync with cloud');
+      }
+    }, 800);
+
+    return () => clearTimeout(debounceTimer);
+  }, [
+    profile,
+    schedule,
+    completedTaskIds,
+    focusLogs,
+    pomodoroSettings,
+    favoriteShayariIds,
+    userDefaultSchedule,
+    user,
+    isLoaded,
+  ]);
+
+  // Refetch newer data when tab gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user && syncStatusRef.current !== 'table_missing' && !isHydratingFromRemoteRef.current) {
+        fetchUserDataFromCloud(user.id).then((res) => {
+          if (res.status === 'success' && res.data && res.data.updated_at) {
+            const remoteTime = new Date(res.data.updated_at).getTime();
+            const localTime = lastSyncedAt ? new Date(lastSyncedAt).getTime() : 0;
+            if (remoteTime > localTime) {
+              isHydratingFromRemoteRef.current = true;
+              if (Array.isArray(res.data.schedule)) setSchedule(res.data.schedule);
+              if (Array.isArray(res.data.user_default_schedule)) setUserDefaultSchedule(res.data.user_default_schedule);
+              if (res.data.profile) setProfile((prev) => ({ ...prev, ...res.data!.profile }));
+              if (res.data.completed_tasks && res.data.completed_tasks.date === getTodayString()) {
+                setCompletedTaskIds(res.data.completed_tasks.ids || []);
+              }
+              if (Array.isArray(res.data.focus_logs)) setFocusLogs(res.data.focus_logs);
+              if (res.data.pomodoro_settings) setPomodoroSettings((prev) => ({ ...prev, ...res.data!.pomodoro_settings }));
+              if (Array.isArray(res.data.favorite_shayari_ids)) setFavoriteShayariIds(res.data.favorite_shayari_ids);
+
+              setTimeout(() => {
+                isHydratingFromRemoteRef.current = false;
+              }, 500);
+              setSyncStatus('synced');
+              setLastSyncedAt(res.data.updated_at);
+            }
+          }
+        });
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, lastSyncedAt]);
+
+  // Manual actions
+  const uploadToCloud = useCallback(async (): Promise<boolean> => {
+    if (!user) return false;
+    setSyncStatus('syncing');
+    setSyncError(null);
+    const payload: UserDataPayload = {
+      profile: profileRef.current,
+      schedule: scheduleRef.current,
+      user_default_schedule: userDefaultScheduleRef.current,
+      completed_tasks: { date: getTodayString(), ids: completedTaskIdsRef.current },
+      focus_logs: focusLogsRef.current,
+      pomodoro_settings: pomodoroSettingsRef.current,
+      favorite_shayari_ids: favoriteShayariIdsRef.current,
+    };
+    const res = await saveUserDataToCloud(user.id, payload);
+    if (res.status === 'success') {
+      setSyncStatus('synced');
+      setLastSyncedAt(res.updatedAt || new Date().toISOString());
+      return true;
+    } else if (res.status === 'table_missing') {
+      setSyncStatus('table_missing');
+      setSyncError(res.error || 'Database table public.user_data not found');
+      return false;
+    } else {
+      setSyncStatus('error');
+      setSyncError(res.error || 'Upload failed');
+      return false;
+    }
+  }, [user]);
+
+  const downloadFromCloud = useCallback(async (): Promise<boolean> => {
+    if (!user) return false;
+    setSyncStatus('syncing');
+    setSyncError(null);
+    const res = await fetchUserDataFromCloud(user.id);
+    if (res.status === 'success' && res.data) {
+      isHydratingFromRemoteRef.current = true;
+      if (Array.isArray(res.data.schedule)) setSchedule(res.data.schedule);
+      if (Array.isArray(res.data.user_default_schedule)) setUserDefaultSchedule(res.data.user_default_schedule);
+      if (res.data.profile && res.data.profile.name) setProfile((prev) => ({ ...prev, ...res.data!.profile }));
+      if (res.data.completed_tasks && res.data.completed_tasks.date === getTodayString()) {
+        setCompletedTaskIds(res.data.completed_tasks.ids || []);
+      }
+      if (Array.isArray(res.data.focus_logs)) setFocusLogs(res.data.focus_logs);
+      if (res.data.pomodoro_settings && Object.keys(res.data.pomodoro_settings).length > 0) {
+        setPomodoroSettings((prev) => ({ ...prev, ...res.data!.pomodoro_settings }));
+      }
+      if (Array.isArray(res.data.favorite_shayari_ids)) setFavoriteShayariIds(res.data.favorite_shayari_ids);
+
+      setTimeout(() => {
+        isHydratingFromRemoteRef.current = false;
+      }, 500);
+
+      setSyncStatus('synced');
+      setLastSyncedAt(res.data.updated_at || new Date().toISOString());
+      return true;
+    } else if (res.status === 'table_missing') {
+      setSyncStatus('table_missing');
+      setSyncError(res.error || 'Database table public.user_data not found');
+      return false;
+    } else {
+      setSyncStatus('error');
+      setSyncError(res.error || 'Download failed');
+      return false;
+    }
+  }, [user]);
+
+  const syncNow = useCallback(async () => {
+    if (!user) return;
+    await hydrateFromCloud(user.id);
+  }, [user, hydrateFromCloud]);
 
   const toggleTaskCompleted = useCallback((id: string): boolean => {
     let isNowCompleted = false;
@@ -786,6 +1158,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         resetTimer,
         skipSession,
         changeMode,
+        syncStatus,
+        lastSyncedAt,
+        syncError,
+        syncNow,
+        uploadToCloud,
+        downloadFromCloud,
       }}
     >
       {children}
