@@ -122,7 +122,8 @@ body {
 }
 
 .animate-border-beam {
-  animation: border-beam 5s linear infinite;
+  animation: border-beam var(--border-beam-duration, 10s) linear infinite;
+  will-change: transform;
 }
 
 /* Circular border comet path circulation */

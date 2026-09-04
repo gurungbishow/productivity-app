@@ -112,7 +112,14 @@ export function CurrentTaskCard() {
           stroke: '#818CF8',
           glow: 'rgba(129, 140, 248, 0.65)',
           accent: 'text-indigo-400',
-          badge: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300',
+          badgeBg: 'bg-[#0E162B]/95',
+          badgeText: 'text-indigo-200',
+          badgeDot: 'bg-indigo-400',
+          badgePing: 'bg-indigo-400',
+          beamFrom: 'rgba(99, 102, 241, 0.2)',
+          beamVia: '#818CF8',
+          beamTo: '#C084FC',
+          beamHead: '#FFFFFF',
           button: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30',
           ambientGlow: 'from-indigo-500/15 via-purple-500/5 to-transparent',
           cardBorder: 'from-indigo-500/70 via-purple-500/40 to-cyan-500/40',
@@ -125,7 +132,14 @@ export function CurrentTaskCard() {
           stroke: '#34D399',
           glow: 'rgba(52, 211, 153, 0.65)',
           accent: 'text-emerald-400',
-          badge: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300',
+          badgeBg: 'bg-[#091F1A]/95',
+          badgeText: 'text-emerald-200',
+          badgeDot: 'bg-emerald-400',
+          badgePing: 'bg-emerald-400',
+          beamFrom: 'rgba(16, 185, 129, 0.2)',
+          beamVia: '#34D399',
+          beamTo: '#2DD4BF',
+          beamHead: '#FFFFFF',
           button: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30',
           ambientGlow: 'from-emerald-500/15 via-teal-500/5 to-transparent',
           cardBorder: 'from-emerald-400/70 via-teal-500/40 to-cyan-500/40',
@@ -138,7 +152,14 @@ export function CurrentTaskCard() {
           stroke: '#22D3EE',
           glow: 'rgba(34, 211, 238, 0.65)',
           accent: 'text-cyan-400',
-          badge: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300',
+          badgeBg: 'bg-[#081B26]/95',
+          badgeText: 'text-cyan-200',
+          badgeDot: 'bg-cyan-400',
+          badgePing: 'bg-cyan-400',
+          beamFrom: 'rgba(6, 182, 212, 0.2)',
+          beamVia: '#22D3EE',
+          beamTo: '#38BDF8',
+          beamHead: '#FFFFFF',
           button: 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-600/30',
           ambientGlow: 'from-cyan-500/15 via-blue-500/5 to-transparent',
           cardBorder: 'from-cyan-400/70 via-sky-500/40 to-indigo-500/40',
@@ -166,19 +187,37 @@ export function CurrentTaskCard() {
       {/* TOP HEADER: Current Slot Identity & Schedule */}
       <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10.5px] font-bold uppercase tracking-wider shrink-0 shadow-sm shadow-emerald-500/20">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span>Current Slot</span>
-          </span>
+          {/* Animated Circulating Border Badge for Current Slot */}
+          <div className="relative p-[1.25px] rounded-full overflow-hidden shrink-0 shadow-sm bg-white/[0.08]">
+            {/* Diffused outer glow */}
+            <div 
+              className="absolute -inset-[150%] animate-border-beam opacity-80 blur-[2px]"
+              style={{
+                background: `conic-gradient(from 0deg, transparent 0deg, transparent 260deg, ${theme.beamFrom} 290deg, ${theme.beamVia} 325deg, ${theme.beamTo} 348deg, ${theme.beamHead} 356deg, transparent 360deg)`
+              }}
+            />
+            {/* Crisp rotating beam */}
+            <div 
+              className="absolute -inset-[150%] animate-border-beam opacity-100"
+              style={{
+                background: `conic-gradient(from 0deg, transparent 0deg, transparent 260deg, ${theme.beamFrom} 290deg, ${theme.beamVia} 325deg, ${theme.beamTo} 348deg, ${theme.beamHead} 356deg, transparent 360deg)`
+              }}
+            />
+            {/* Inner Pill Container */}
+            <div className={`relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full ${theme.badgeBg} text-[10.5px] font-bold uppercase tracking-wider backdrop-blur-md transition-colors duration-500`}>
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${theme.badgePing} opacity-75`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${theme.badgeDot}`} />
+              </span>
+              <span className={theme.badgeText}>Current Slot</span>
+            </div>
+          </div>
         </div>
 
         {/* Slot Schedule Hours */}
         {currentSlot ? (
           <div className="flex items-center gap-1.5 text-xs sm:text-[12px] font-mono font-extrabold text-white shrink-0 bg-white/[0.08] px-2.5 py-1 rounded-xl border border-white/[0.14] shadow-sm tracking-tight">
-            <Clock className="w-4 h-4 text-indigo-300 stroke-[2.25] drop-shadow-[0_0_6px_rgba(129,140,248,0.8)] shrink-0" />
+            <Clock className={`w-4 h-4 ${theme.accent} stroke-[2.25] drop-shadow-[0_0_6px_rgba(129,140,248,0.8)] shrink-0 transition-colors duration-500`} />
             <span className="text-white font-extrabold tracking-tight">{currentSlot.startTime} – {currentSlot.endTime}</span>
           </div>
         ) : (
@@ -197,99 +236,101 @@ export function CurrentTaskCard() {
           </p>
         )}
       </div>
-
       {/* POMODORO STATION ENGINE */}
-      <div className="pt-0.5 space-y-3">
+      <div className="pt-0.5 space-y-2.5">
         
-        {/* Mode Selector Tabs (Smooth cross-fading active overlays) */}
-        <div className="grid grid-cols-3 p-1 rounded-2xl bg-black/60 border border-white/[0.08] shadow-inner backdrop-blur-md gap-1">
-          {[
-            { id: 'work' as const, label: `Focus (${pomodoroSettings.workMinutes}m)`, border: 'from-indigo-500 via-purple-500 to-pink-500', shadow: 'shadow-[0_0_16px_rgba(99,102,241,0.35)]', bg: 'from-indigo-600 via-indigo-500 to-purple-600' },
-            { id: 'short_break' as const, label: `Break (${pomodoroSettings.shortBreakMinutes}m)`, border: 'from-emerald-400 via-teal-400 to-cyan-400', shadow: 'shadow-[0_0_16px_rgba(52,211,153,0.35)]', bg: 'from-emerald-600 to-teal-600' },
-            { id: 'long_break' as const, label: `Long (${pomodoroSettings.longBreakMinutes}m)`, border: 'from-cyan-400 via-blue-500 to-purple-500', shadow: 'shadow-[0_0_16px_rgba(6,182,212,0.35)]', bg: 'from-cyan-600 to-blue-600' },
-          ].map((modeItem) => {
-            const isModeActive = timerState.mode === modeItem.id;
-            return (
-              <button
-                key={modeItem.id}
-                onClick={() => changeMode(modeItem.id)}
-                className="relative rounded-xl p-[1.5px] select-none active:scale-95 transition-transform duration-150 cursor-pointer overflow-hidden"
-              >
-                {/* Active Glowing Border & Gradient Background Overlay */}
-                <div
-                  className={`absolute inset-0 rounded-xl bg-gradient-to-r ${modeItem.border} ${modeItem.shadow} transition-opacity duration-200 ease-out pointer-events-none ${
-                    isModeActive ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
-
-                {/* Inner button container */}
-                <div
-                  className={`relative z-10 w-full py-2 px-1 rounded-[10.5px] text-xs font-bold transition-colors duration-200 flex items-center justify-center ${
-                    isModeActive
-                      ? 'text-white shadow-inner'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
-                  }`}
+        {/* Grouped Mode Selector & Session Progress (Zero y-gap) */}
+        <div className="space-y-1">
+          {/* Mode Selector Tabs (Smooth cross-fading active overlays) */}
+          <div className="grid grid-cols-3 p-1 rounded-xl bg-black/60 border border-white/[0.08] shadow-inner backdrop-blur-md gap-1">
+            {[
+              { id: 'work' as const, label: `Focus (${pomodoroSettings.workMinutes}m)`, border: 'from-indigo-500 via-purple-500 to-pink-500', shadow: 'shadow-[0_0_16px_rgba(99,102,241,0.35)]', bg: 'from-indigo-600 via-indigo-500 to-purple-600' },
+              { id: 'short_break' as const, label: `Break (${pomodoroSettings.shortBreakMinutes}m)`, border: 'from-emerald-400 via-teal-400 to-cyan-400', shadow: 'shadow-[0_0_16px_rgba(52,211,153,0.35)]', bg: 'from-emerald-600 to-teal-600' },
+              { id: 'long_break' as const, label: `Long (${pomodoroSettings.longBreakMinutes}m)`, border: 'from-cyan-400 via-blue-500 to-purple-500', shadow: 'shadow-[0_0_16px_rgba(6,182,212,0.35)]', bg: 'from-cyan-600 to-blue-600' },
+            ].map((modeItem) => {
+              const isModeActive = timerState.mode === modeItem.id;
+              return (
+                <button
+                  key={modeItem.id}
+                  onClick={() => changeMode(modeItem.id)}
+                  className="relative h-8 rounded-lg p-[1.5px] select-none active:scale-95 transition-transform duration-150 cursor-pointer overflow-hidden"
                 >
-                  {/* Active fill sheen */}
+                  {/* Active Glowing Border & Gradient Background Overlay */}
                   <div
-                    className={`absolute inset-0 rounded-[10.5px] bg-gradient-to-r ${modeItem.bg} transition-opacity duration-200 pointer-events-none -z-10 ${
-                      isModeActive ? 'opacity-90' : 'opacity-0'
+                    className={`absolute inset-0 rounded-lg bg-gradient-to-r ${modeItem.border} ${modeItem.shadow} transition-opacity duration-200 ease-out pointer-events-none ${
+                      isModeActive ? 'opacity-100' : 'opacity-0'
                     }`}
                   />
-                  <span>{modeItem.label}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
 
-        {/* Dynamic Session Progress: Session 1 of 4 */}
-        <div className="flex items-center justify-between px-3.5 py-1.5 rounded-[14px] bg-white/[0.03] border border-white/[0.06] backdrop-blur-md">
-          <span className="text-[11px] font-bold text-slate-200">
-            {timerState.mode === 'long_break'
-              ? `Cycle Complete (${pomodoroSettings.longBreakInterval || 4}/${pomodoroSettings.longBreakInterval || 4})`
-              : `Session ${timerState.sessionNumber} of ${pomodoroSettings.longBreakInterval || 4}`}
-          </span>
+                  {/* Inner button container */}
+                  <div
+                    className={`relative z-10 w-full h-full px-1 rounded-[7px] text-[11px] font-bold transition-colors duration-200 flex items-center justify-center ${
+                      isModeActive
+                        ? 'text-white shadow-inner'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    {/* Active fill sheen */}
+                    <div
+                      className={`absolute inset-0 rounded-[7px] bg-gradient-to-r ${modeItem.bg} transition-opacity duration-200 pointer-events-none -z-10 ${
+                        isModeActive ? 'opacity-90' : 'opacity-0'
+                      }`}
+                    />
+                    <span>{modeItem.label}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* Auto status badge */}
-            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium text-slate-400">
-              <Zap className={`w-2.5 h-2.5 ${pomodoroSettings.autoStartBreaks && pomodoroSettings.autoStartFocus ? 'text-amber-400' : 'text-slate-500'}`} />
-              <span>{pomodoroSettings.autoStartBreaks && pomodoroSettings.autoStartFocus ? 'Auto-flow' : 'Manual'}</span>
+          {/* Dynamic Session Progress: Session 1 of 4 */}
+          <div className="flex items-center justify-between px-3.5 py-1.5 rounded-[14px] bg-white/[0.03] border border-white/[0.06] backdrop-blur-md">
+            <span className="text-[11px] font-bold text-slate-200">
+              {timerState.mode === 'long_break'
+                ? `Cycle Complete (${pomodoroSettings.longBreakInterval || 4}/${pomodoroSettings.longBreakInterval || 4})`
+                : `Session ${timerState.sessionNumber} of ${pomodoroSettings.longBreakInterval || 4}`}
             </span>
 
-            {/* Visual Session Indicator Pills */}
-            <div className="flex items-center gap-1.5">
-              {Array.from({ length: pomodoroSettings.longBreakInterval || 4 }, (_, i) => i + 1).map((step) => {
-                const isPast = step < timerState.sessionNumber;
-                const isCurrent = step === timerState.sessionNumber;
-                return (
-                  <div
-                    key={step}
-                    title={`Session ${step} of ${pomodoroSettings.longBreakInterval || 4}`}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      isCurrent
-                        ? 'w-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-sm shadow-indigo-500/50'
-                        : isPast
-                        ? 'w-2 bg-emerald-400/90'
-                        : 'w-2 bg-white/15'
-                    }`}
-                  />
-                );
-              })}
+            <div className="flex items-center gap-2.5">
+              {/* Auto status badge */}
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                <Zap className={`w-2.5 h-2.5 ${pomodoroSettings.autoStartBreaks && pomodoroSettings.autoStartFocus ? 'text-amber-400' : 'text-slate-500'}`} />
+                <span>{pomodoroSettings.autoStartBreaks && pomodoroSettings.autoStartFocus ? 'Auto-flow' : 'Manual'}</span>
+              </span>
+
+              {/* Visual Session Indicator Pills */}
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: pomodoroSettings.longBreakInterval || 4 }, (_, i) => i + 1).map((step) => {
+                  const isPast = step < timerState.sessionNumber;
+                  const isCurrent = step === timerState.sessionNumber;
+                  return (
+                    <div
+                      key={step}
+                      title={`Session ${step} of ${pomodoroSettings.longBreakInterval || 4}`}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        isCurrent
+                          ? 'w-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-sm shadow-indigo-500/50'
+                          : isPast
+                          ? 'w-2 bg-emerald-400/90'
+                          : 'w-2 bg-white/15'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Circular Countdown Timer (Luxury Timepiece with Vivid Solid Stroke & Neon Glow) */}
-        <div className="relative flex items-center justify-center py-2">
+        <div className="relative flex items-center justify-center py-0.5">
           {/* Ambient Glowing Core */}
           <div 
             className="absolute w-32 h-32 sm:w-36 sm:h-36 rounded-full blur-3xl opacity-40 transition-all duration-700 pointer-events-none"
             style={{ backgroundColor: theme.stroke }}
           />
 
-          <div className="relative flex items-center justify-center w-44 h-44 sm:w-48 sm:h-48">
+          <div className="relative flex items-center justify-center w-40 h-40 sm:w-44 sm:h-44">
             {/* Concentric outer decorative halo */}
             <div className="absolute inset-2 rounded-full border border-white/[0.06] pointer-events-none" />
 
@@ -324,21 +365,21 @@ export function CurrentTaskCard() {
             </svg>
 
             {/* Inner Digital Readout */}
-            <div className="absolute flex flex-col items-center justify-center text-center space-y-1 pointer-events-none select-none">
+            <div className="absolute flex flex-col items-center justify-center text-center space-y-0.5 pointer-events-none select-none">
               <span className="text-[9.5px] font-black uppercase tracking-[0.2em] text-slate-400">
                 {timerState.mode === 'work' ? 'WORK SPRINT' : timerState.mode.replace('_', ' ')}
               </span>
-              <span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
+              <span className="text-4xl sm:text-[44px] font-black font-mono tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
                 {timeFormatted}
               </span>
-              <div className="h-6 flex items-center justify-center gap-1.5 pt-0.5">
+              <div className="h-5 flex items-center justify-center gap-1.5 pt-0.5">
                 {timerState.status === 'running' ? (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <span>Sprint Active</span>
                   </span>
                 ) : (
-                  <span className="text-slate-400 text-[10.5px] font-medium">
+                  <span className="text-slate-400 text-[10px] font-medium">
                     Ready to Start
                   </span>
                 )}
@@ -348,29 +389,29 @@ export function CurrentTaskCard() {
         </div>
 
         {/* Primary Controls (Permanent Mobile Glow & Signature Gradient Border) */}
-        <div className="flex items-center justify-center gap-3 sm:gap-4 pt-0">
+        <div className="w-full flex items-center justify-between gap-2 sm:gap-2.5 px-2.5 sm:px-3 pt-0">
           {/* Reset Timer Button - Warm Golden Amber Glow */}
           <button
             onClick={resetTimer}
             title="Reset Timer"
             aria-label="Reset Timer"
-            className="group relative w-12 h-12 flex items-center justify-center rounded-2xl bg-gradient-to-b from-amber-500/15 via-white/[0.04] to-black/60 border border-amber-400/40 shadow-[0_4px_20px_rgba(0,0,0,0.35),0_0_18px_rgba(251,191,36,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-90 active:border-amber-300 active:shadow-[0_0_25px_rgba(251,191,36,0.45)] transition-all duration-200 shrink-0"
+            className="group relative w-12 sm:w-14 h-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-amber-500/15 via-white/[0.04] to-black/60 border border-amber-400/40 shadow-[0_4px_20px_rgba(0,0,0,0.35),0_0_18px_rgba(251,191,36,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-90 active:border-amber-300 active:shadow-[0_0_25px_rgba(251,191,36,0.45)] transition-all duration-200 shrink-0"
           >
-            <RotateCcw className="w-5 h-5 text-amber-300 stroke-[2.2] drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] group-hover:-rotate-90 transition-all duration-300" />
+            <RotateCcw className="w-[18px] h-[18px] text-amber-300 stroke-[2.2] drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] group-hover:-rotate-90 transition-all duration-300" />
           </button>
 
           {/* Start / Pause Core Button with Colorful Border */}
-          <div className="relative flex-1 max-w-[210px] sm:max-w-[230px] p-[1.5px] rounded-2xl shrink-0 overflow-hidden">
+          <div className="relative flex-1 h-10 min-w-0 p-[1.5px] rounded-xl overflow-hidden">
             {/* Work border overlay */}
-            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_25px_rgba(99,102,241,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'work' ? 'opacity-100' : 'opacity-0'}`} />
+            <div className={`absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_25px_rgba(99,102,241,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'work' ? 'opacity-100' : 'opacity-0'}`} />
             {/* Short break border overlay */}
-            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 shadow-[0_0_25px_rgba(52,211,153,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'short_break' ? 'opacity-100' : 'opacity-0'}`} />
+            <div className={`absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 shadow-[0_0_25px_rgba(52,211,153,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'short_break' ? 'opacity-100' : 'opacity-0'}`} />
             {/* Long break border overlay */}
-            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 shadow-[0_0_25px_rgba(6,182,212,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'long_break' ? 'opacity-100' : 'opacity-0'}`} />
+            <div className={`absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 shadow-[0_0_25px_rgba(6,182,212,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'long_break' ? 'opacity-100' : 'opacity-0'}`} />
 
             <button
               onClick={handleStartPause}
-              className="relative z-10 w-full h-12 flex items-center justify-center gap-2 px-5 rounded-[14px] text-white font-black text-sm tracking-wide active:scale-95 transition-all shadow-inner overflow-hidden"
+              className="relative z-10 w-full h-full flex items-center justify-center gap-2 px-4 rounded-[10.5px] text-white font-black text-xs tracking-wide active:scale-95 transition-all shadow-inner overflow-hidden"
             >
               {/* Internal background gradient overlays */}
               <div className={`absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 transition-opacity duration-300 pointer-events-none ${timerState.mode === 'work' ? 'opacity-100' : 'opacity-0'}`} />
@@ -380,12 +421,12 @@ export function CurrentTaskCard() {
               <div className="relative z-10 flex items-center justify-center gap-2">
                 {timerState.status === 'running' ? (
                   <>
-                    <Pause className="w-4 h-4 fill-white" />
+                    <Pause className="w-4 h-4 fill-white shrink-0" />
                     <span>Pause</span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4 fill-white" />
+                    <Play className="w-4 h-4 fill-white shrink-0" />
                     <span>{timerState.status === 'paused' ? 'Resume' : 'Start'} {timerState.mode === 'work' ? 'Focus' : 'Break'}</span>
                   </>
                 )}
@@ -398,9 +439,9 @@ export function CurrentTaskCard() {
             onClick={skipSession}
             title="Skip to next session"
             aria-label="Skip to next session"
-            className="group relative w-12 h-12 flex items-center justify-center rounded-2xl bg-gradient-to-b from-cyan-500/15 via-white/[0.04] to-black/60 border border-cyan-400/40 shadow-[0_4px_20px_rgba(0,0,0,0.35),0_0_18px_rgba(34,211,238,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-90 active:border-cyan-300 active:shadow-[0_0_25px_rgba(34,211,238,0.45)] transition-all duration-200 shrink-0"
+            className="group relative w-12 sm:w-14 h-10 flex items-center justify-center rounded-xl bg-gradient-to-b from-cyan-500/15 via-white/[0.04] to-black/60 border border-cyan-400/40 shadow-[0_4px_20px_rgba(0,0,0,0.35),0_0_18px_rgba(34,211,238,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-90 active:border-cyan-300 active:shadow-[0_0_25px_rgba(34,211,238,0.45)] transition-all duration-200 shrink-0"
           >
-            <SkipForward className="w-5 h-5 text-cyan-300 stroke-[2.2] drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] group-hover:translate-x-0.5 transition-all duration-300" />
+            <SkipForward className="w-[18px] h-[18px] text-cyan-300 stroke-[2.2] drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] group-hover:translate-x-0.5 transition-all duration-300" />
           </button>
         </div>
 
@@ -434,7 +475,7 @@ export function CurrentTaskCard() {
 
           {/* Right: Mark Done Action Button (Colourful Gradient Border & Glow) */}
           <div
-            className={`shrink-0 p-[1.5px] rounded-xl transition-all duration-300 active:scale-90 ${
+            className={`shrink-0 h-9 p-[1.5px] rounded-xl transition-all duration-300 active:scale-90 ${
               isCompleted
                 ? 'bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 shadow-[0_0_25px_rgba(52,211,153,0.6)]'
                 : 'bg-gradient-to-r from-emerald-400 via-cyan-400 to-purple-500 hover:from-emerald-300 hover:via-cyan-300 hover:to-purple-400 shadow-[0_0_20px_rgba(52,211,153,0.4),0_0_15px_rgba(168,85,247,0.25)]'

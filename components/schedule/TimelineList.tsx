@@ -287,66 +287,57 @@ export function TimelineList() {
                 isMenuOpen ? 'z-30' : 'z-10'
               } ${
                 active
-                  ? 'bg-gradient-to-br from-[#0c1322]/98 via-[#080d18]/98 to-[#050810]/98 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_25px_rgba(139,92,246,0.25)]'
+                  ? 'border border-emerald-500/30 bg-gradient-to-br from-[#0c1322]/98 via-[#080d18]/98 to-[#050810]/98 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_25px_rgba(16,185,129,0.15)]'
                   : isCompleted
                   ? 'border border-emerald-500/20 bg-gradient-to-br from-[#090D15]/60 via-[#070A10]/70 to-[#05070C]/80 opacity-70 backdrop-blur-md'
                   : `border border-white/[0.08] bg-gradient-to-br from-[#121829]/90 via-[#0C111F]/92 to-[#080D18]/95 ${categoryMeta.accentBorder} shadow-[0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20`
               }`}
             >
-              {/* Running Slot Animated Circular Traveling Comet */}
+              {/* Rotating Circular Border Beam around Active Container */}
               {active && (
                 <>
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl overflow-visible z-0" style={{ width: '100%', height: '100%' }}>
-                    <defs>
-                      <linearGradient id="rainbow-comet-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#06B6D4" />
-                        <stop offset="20%" stopColor="#3B82F6" />
-                        <stop offset="40%" stopColor="#8B5CF6" />
-                        <stop offset="60%" stopColor="#EC4899" />
-                        <stop offset="80%" stopColor="#F59E0B" />
-                        <stop offset="100%" stopColor="#10B981" />
-                      </linearGradient>
-                      <filter id="comet-glow-filter" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="2.5" result="blur" />
-                        <feMerge>
-                          <feMergeNode in="blur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-
-                    {/* Static subtle track */}
-                    <rect
-                      x="1"
-                      y="1"
-                      width="calc(100% - 2px)"
-                      height="calc(100% - 2px)"
-                      rx="15"
-                      fill="none"
-                      stroke="rgba(255, 255, 255, 0.1)"
-                      strokeWidth="1.5"
+                  {/* Subtle outer neon aura glow traveling with beam */}
+                  <div 
+                    className="absolute -inset-[2px] rounded-2xl pointer-events-none overflow-hidden -z-10 blur-[3px] opacity-70"
+                    style={{
+                      padding: '2px',
+                      mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                      WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                      maskComposite: 'exclude',
+                      WebkitMaskComposite: 'xor',
+                    }}
+                  >
+                    <div
+                      className="absolute -inset-[150%] animate-border-beam"
+                      style={{
+                        background: 'conic-gradient(from 0deg, transparent 0deg, transparent 260deg, rgba(16, 185, 129, 0.2) 290deg, #34D399 325deg, #2DD4BF 348deg, #FFFFFF 356deg, transparent 360deg)',
+                        animationDuration: '22s',
+                      }}
                     />
+                  </div>
 
-                    {/* Glowing Traveling Comet circulating around perimeter */}
-                    <rect
-                      x="1"
-                      y="1"
-                      width="calc(100% - 2px)"
-                      height="calc(100% - 2px)"
-                      rx="15"
-                      fill="none"
-                      stroke="url(#rainbow-comet-gradient)"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      pathLength="100"
-                      strokeDasharray="25 75"
-                      filter="url(#comet-glow-filter)"
-                      className="animate-border-circulate"
+                  {/* Crisp 1.5px rotating circular border beam */}
+                  <div 
+                    className="absolute inset-0 rounded-2xl pointer-events-none overflow-hidden z-0"
+                    style={{
+                      padding: '1.5px',
+                      mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                      WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                      maskComposite: 'exclude',
+                      WebkitMaskComposite: 'xor',
+                    }}
+                  >
+                    <div
+                      className="absolute -inset-[150%] animate-border-beam"
+                      style={{
+                        background: 'conic-gradient(from 0deg, transparent 0deg, transparent 260deg, rgba(16, 185, 129, 0.2) 290deg, #34D399 325deg, #2DD4BF 348deg, #FFFFFF 356deg, transparent 360deg)',
+                        animationDuration: '22s',
+                      }}
                     />
-                  </svg>
+                  </div>
 
-                  {/* Colorful ambient aura glow */}
-                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/25 via-purple-500/25 via-pink-500/25 to-amber-500/20 blur-lg pointer-events-none -z-10 animate-pulse" />
+                  {/* Active ambient aura glow */}
+                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-cyan-500/15 blur-lg pointer-events-none -z-10 opacity-70" />
                 </>
               )}
 
