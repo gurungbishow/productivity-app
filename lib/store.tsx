@@ -475,12 +475,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Initial fetch on login / auth resolution
   useEffect(() => {
     if (isLoadingAuth) return;
-    if (user && isLoaded) {
-      hydrateFromCloud(user.id);
-    } else if (!user) {
-      setSyncStatus('local_only');
-      initialCloudLoadDoneRef.current = false;
-    }
+    const timer = setTimeout(() => {
+      if (user && isLoaded) {
+        hydrateFromCloud(user.id);
+      } else if (!user) {
+        setSyncStatus('local_only');
+        initialCloudLoadDoneRef.current = false;
+      }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [user, isLoadingAuth, isLoaded, hydrateFromCloud]);
 
   // Realtime subscription for cross-device updates

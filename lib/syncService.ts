@@ -85,7 +85,7 @@ function isSetupRequiredError(error: { code?: string; message?: string } | null)
   );
 }
 
-function isAuthOrJwtError(error: any): boolean {
+function isAuthOrJwtError(error: { status?: number; code?: string; message?: string } | null): boolean {
   if (!error) return false;
   const msg = (error.message || '').toLowerCase();
   return (
@@ -158,8 +158,9 @@ export async function fetchUserDataFromCloud(userId: string): Promise<{
         updated_at: data.updated_at,
       },
     };
-  } catch (err: any) {
-    return { status: 'error', error: err?.message || 'Network / Supabase service unavailable' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Network / Supabase service unavailable';
+    return { status: 'error', error: message };
   }
 }
 
@@ -221,8 +222,9 @@ export async function saveUserDataToCloud(
     }
 
     return { status: 'success', updatedAt };
-  } catch (err: any) {
-    return { status: 'error', error: err?.message || 'Network / Supabase service unavailable' };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Network / Supabase service unavailable';
+    return { status: 'error', error: message };
   }
 }
 
@@ -244,16 +246,16 @@ export function subscribeToUserDataChanges(
       },
       (payload) => {
         if (payload.new && typeof payload.new === 'object') {
-          const remote = payload.new as any;
+          const remote = payload.new as Record<string, unknown>;
           onRemoteUpdate({
-            profile: remote.profile || {},
-            schedule: Array.isArray(remote.schedule) ? remote.schedule : [],
-            user_default_schedule: Array.isArray(remote.user_default_schedule) ? remote.user_default_schedule : [],
-            completed_tasks: remote.completed_tasks || { date: '', ids: [] },
-            focus_logs: Array.isArray(remote.focus_logs) ? remote.focus_logs : [],
-            pomodoro_settings: remote.pomodoro_settings || {},
-            favorite_shayari_ids: Array.isArray(remote.favorite_shayari_ids) ? remote.favorite_shayari_ids : [],
-            updated_at: remote.updated_at,
+            profile: (remote.profile as UserProfile) || {},
+            schedule: Array.isArray(remote.schedule) ? (remote.schedule as ScheduleItem[]) : [],
+            user_default_schedule: Array.isArray(remote.user_default_schedule) ? (remote.user_default_schedule as ScheduleItem[]) : [],
+            completed_tasks: (remote.completed_tasks as { date: string; ids: string[] }) || { date: '', ids: [] },
+            focus_logs: Array.isArray(remote.focus_logs) ? (remote.focus_logs as FocusSessionLog[]) : [],
+            pomodoro_settings: (remote.pomodoro_settings as PomodoroSettings) || {},
+            favorite_shayari_ids: Array.isArray(remote.favorite_shayari_ids) ? (remote.favorite_shayari_ids as number[]) : [],
+            updated_at: typeof remote.updated_at === 'string' ? remote.updated_at : undefined,
           });
         }
       }
