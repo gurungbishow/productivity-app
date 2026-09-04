@@ -336,23 +336,12 @@ export function SettingsView() {
 
         {/* AUTOMATION & CYCLE FLOW */}
         <div className="space-y-4 pt-4 border-t border-white/[0.08]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-400 stroke-[2.2]" />
-              <div>
-                <span className="text-xs font-bold text-slate-200 tracking-tight">Cycle Flow & Automation</span>
-                <p className="text-[11px] text-slate-400">Choose automatic continuous cycle or manual step-by-step</p>
-              </div>
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-400 stroke-[2.2]" />
+            <div>
+              <span className="text-xs font-bold text-slate-200 tracking-tight">Cycle Flow & Automation</span>
+              <p className="text-[11px] text-slate-400">Choose automatic continuous cycle or manual step-by-step</p>
             </div>
-            
-            {/* Auto status pill */}
-            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all ${
-              pomodoroSettings.autoStartBreaks && pomodoroSettings.autoStartFocus
-                ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                : 'bg-amber-500/15 border-amber-400/30 text-amber-300'
-            }`}>
-              {pomodoroSettings.autoStartBreaks && pomodoroSettings.autoStartFocus ? '⚡ Full Auto-Flow' : '🖐️ Manual'}
-            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
