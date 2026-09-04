@@ -57,6 +57,40 @@ body {
   box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3);
 }
 
+/* Slower, premium animations for circle indicators throughout the application */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@theme {
+  --animate-pulse: pulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-ping: ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-pulse {
+  animation: pulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+
+.animate-ping {
+  animation: ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite !important;
+}
+
 /* Custom animated pulse for active routine */
 @keyframes pulse-ring {
   0% {
@@ -74,7 +108,151 @@ body {
 }
 
 .animate-pulse-ring {
-  animation: pulse-ring 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse-ring 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Premium traveling border beam */
+@keyframes border-beam {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-border-beam {
+  animation: border-beam 5s linear infinite;
+}
+
+/* Circular border comet path circulation */
+@keyframes border-circulate {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.animate-border-circulate {
+  animation: border-circulate 16s linear infinite;
+  will-change: stroke-dashoffset;
+}
+
+/* Animated glowing border and aura pulse - compact & subtle */
+@keyframes glow-border-pulse {
+  0%, 100% {
+    box-shadow: 0 0 4px 0 var(--glow-color, rgba(99, 102, 241, 0.3)),
+                inset 0 0 3px 0 var(--glow-color, rgba(99, 102, 241, 0.15));
+    border-color: var(--border-color-low, rgba(129, 140, 248, 0.45));
+  }
+  50% {
+    box-shadow: 0 0 8px 1px var(--glow-color, rgba(99, 102, 241, 0.55)),
+                inset 0 0 5px 0 var(--glow-color, rgba(99, 102, 241, 0.25));
+    border-color: var(--border-color-high, rgba(165, 180, 252, 0.85));
+  }
+}
+
+@keyframes aura-breath {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-border-pulse 3.5s ease-in-out infinite !important;
+  will-change: box-shadow, border-color;
+}
+
+.animate-aura-breath {
+  animation: aura-breath 3.5s ease-in-out infinite !important;
+  will-change: opacity;
+}
+
+/* Hardware-accelerated smooth enter animations */
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes enter-slide-top {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes enter-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes enter-tab {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-duration: var(--animate-duration, 200ms);
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+  will-change: opacity, transform;
+}
+
+.fade-in {
+  animation-name: enter-fade;
+}
+
+.slide-in-from-top-2 {
+  animation-name: enter-slide-top;
+}
+
+.zoom-in-95 {
+  animation-name: enter-zoom;
+}
+
+.animate-tab-enter {
+  animation: enter-tab 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity;
+}
+
+/* Scoped duration utilities specifically for enter animations (does not affect transitions or other keyframes) */
+.animate-in.duration-150 {
+  animation-duration: 150ms;
+}
+
+.animate-in.duration-200 {
+  animation-duration: 200ms;
+}
+
+.animate-in.duration-300 {
+  animation-duration: 300ms;
+}
+
+.animate-in.duration-500 {
+  animation-duration: 500ms;
 }
 
 /* Sleek dark scrollbar */

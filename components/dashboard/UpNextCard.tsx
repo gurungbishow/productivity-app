@@ -48,7 +48,7 @@ export function UpNextCard({ onViewSchedule }: UpNextCardProps) {
         </span>
 
         <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-400/30 text-indigo-300 text-[11px] font-mono font-bold shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
           <span>starts in {formatDuration(minutesUntilNext)}</span>
         </span>
       </div>

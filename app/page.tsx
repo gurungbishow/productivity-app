@@ -16,6 +16,14 @@ import { Loader2 } from 'lucide-react';
 
 function MobileAppContent() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'schedule' | 'settings'>('dashboard');
+  const mainRef = React.useRef<HTMLElement>(null);
+
+  const handleTabChange = (tab: 'dashboard' | 'schedule' | 'settings') => {
+    setActiveTab(tab);
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#05070B] flex justify-center selection:bg-indigo-500 selection:text-white">
@@ -29,20 +37,20 @@ function MobileAppContent() {
         <div className="absolute bottom-36 left-10 w-72 h-72 bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Sticky Mobile Top App Bar */}
-        <MobileHeader onTimerClick={() => setActiveTab('dashboard')} />
+        <MobileHeader onTimerClick={() => handleTabChange('dashboard')} />
 
         {/* Scrollable Main Mobile Content */}
-        <main className="flex-1 px-4 py-4 pb-28 space-y-5 overflow-y-auto">
+        <main ref={mainRef} className="flex-1 px-4 py-4 pb-28 space-y-5 overflow-y-auto">
           
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
+            <div className="space-y-4 animate-tab-enter">
 
               {/* Active Task (Now with Integrated Pomodoro) */}
               <CurrentTaskCard />
 
               {/* Up Next Card */}
-              <UpNextCard onViewSchedule={() => setActiveTab('schedule')} />
+              <UpNextCard onViewSchedule={() => handleTabChange('schedule')} />
 
               {/* Daily Motivational Shayari */}
               <ShayariWidget />
@@ -51,14 +59,14 @@ function MobileAppContent() {
 
           {/* TAB 2: TIMETABLE SCHEDULE */}
           {activeTab === 'schedule' && (
-            <div className="animate-in fade-in duration-200">
+            <div className="animate-tab-enter">
               <TimelineList />
             </div>
           )}
 
           {/* TAB 3: APP & POMODORO SETTINGS */}
           {activeTab === 'settings' && (
-            <div className="animate-in fade-in duration-200">
+            <div className="animate-tab-enter">
               <SettingsView />
             </div>
           )}
@@ -66,7 +74,7 @@ function MobileAppContent() {
         </main>
 
         {/* Pinned Mobile Bottom Navigation Bar (Dashboard, Timetable, Settings) */}
-        <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+        <MobileBottomNav activeTab={activeTab} setActiveTab={handleTabChange} />
 
       </div>
 

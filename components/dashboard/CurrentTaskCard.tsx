@@ -114,7 +114,11 @@ export function CurrentTaskCard() {
           accent: 'text-indigo-400',
           badge: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300',
           button: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30',
-          ambientGlow: 'from-indigo-500/15 via-purple-500/5 to-transparent'
+          ambientGlow: 'from-indigo-500/15 via-purple-500/5 to-transparent',
+          cardBorder: 'from-indigo-500/70 via-purple-500/40 to-cyan-500/40',
+          cardShadow: 'shadow-[0_20px_50px_rgba(0,0,0,0.65),0_0_35px_rgba(99,102,241,0.25)]',
+          ambientAura: 'from-indigo-500/25 via-purple-500/15 to-transparent',
+          topSheen: 'via-indigo-400/60'
         };
       case 'short_break':
         return {
@@ -123,7 +127,11 @@ export function CurrentTaskCard() {
           accent: 'text-emerald-400',
           badge: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300',
           button: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/30',
-          ambientGlow: 'from-emerald-500/15 via-teal-500/5 to-transparent'
+          ambientGlow: 'from-emerald-500/15 via-teal-500/5 to-transparent',
+          cardBorder: 'from-emerald-400/70 via-teal-500/40 to-cyan-500/40',
+          cardShadow: 'shadow-[0_20px_50px_rgba(0,0,0,0.65),0_0_35px_rgba(16,185,129,0.25)]',
+          ambientAura: 'from-emerald-500/25 via-teal-500/15 to-transparent',
+          topSheen: 'via-emerald-400/60'
         };
       case 'long_break':
         return {
@@ -132,7 +140,11 @@ export function CurrentTaskCard() {
           accent: 'text-cyan-400',
           badge: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300',
           button: 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-600/30',
-          ambientGlow: 'from-cyan-500/15 via-blue-500/5 to-transparent'
+          ambientGlow: 'from-cyan-500/15 via-blue-500/5 to-transparent',
+          cardBorder: 'from-cyan-400/70 via-sky-500/40 to-indigo-500/40',
+          cardShadow: 'shadow-[0_20px_50px_rgba(0,0,0,0.65),0_0_35px_rgba(6,182,212,0.25)]',
+          ambientAura: 'from-cyan-500/25 via-sky-500/15 to-transparent',
+          topSheen: 'via-cyan-400/60'
         };
     }
   };
@@ -140,10 +152,16 @@ export function CurrentTaskCard() {
   const theme = getModeColor();
 
   return (
-    <div className="relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-gradient-to-b from-[#131B30]/95 via-[#0D1322]/95 to-[#080B14]/98 p-4 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.08)] space-y-3">
-      
-      {/* Ambient background glowing sphere adapted to current mode */}
-      <div className={`absolute -top-12 -right-12 w-56 h-56 bg-gradient-to-b ${theme.ambientGlow} rounded-full blur-3xl pointer-events-none transition-all duration-700 opacity-60`} />
+    <div className={`relative rounded-[25px] p-[1.5px] bg-gradient-to-b ${theme.cardBorder} ${theme.cardShadow} transition-all duration-700`}>
+      {/* Outer ambient aura glow */}
+      <div className={`absolute -inset-1.5 rounded-[27px] bg-gradient-to-b ${theme.ambientAura} blur-xl pointer-events-none -z-10 opacity-70 transition-all duration-700`} />
+
+      <div className="relative overflow-hidden rounded-[23.5px] bg-gradient-to-b from-[#131B30]/98 via-[#0D1322]/98 to-[#080B14]/98 p-4 backdrop-blur-2xl shadow-inner space-y-3">
+        {/* Subtle top ambient sheen */}
+        <div className={`absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${theme.topSheen} to-transparent pointer-events-none`} />
+
+        {/* Ambient background glowing sphere adapted to current mode */}
+        <div className={`absolute -top-12 -right-12 w-56 h-56 bg-gradient-to-b ${theme.ambientGlow} rounded-full blur-3xl pointer-events-none transition-all duration-700 opacity-60`} />
 
       {/* TOP HEADER: Current Slot Identity & Schedule */}
       <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
@@ -183,80 +201,54 @@ export function CurrentTaskCard() {
       {/* POMODORO STATION ENGINE */}
       <div className="pt-0.5 space-y-3">
         
-        {/* Mode Selector Tabs (Colourful Gradient Border ONLY on Active Clicked Button) */}
+        {/* Mode Selector Tabs (Smooth cross-fading active overlays) */}
         <div className="grid grid-cols-3 p-1 rounded-2xl bg-black/60 border border-white/[0.08] shadow-inner backdrop-blur-md gap-1">
-          {/* Focus Mode Button */}
-          <div
-            className={`rounded-xl transition-all duration-200 ${
-              timerState.mode === 'work'
-                ? 'p-[1.5px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_16px_rgba(99,102,241,0.35)]'
-                : 'p-[1.5px] bg-transparent'
-            }`}
-          >
-            <button
-              onClick={() => changeMode('work')}
-              className={`w-full py-2 px-1 rounded-[10px] text-xs font-bold transition-all duration-150 active:scale-95 flex items-center justify-center ${
-                timerState.mode === 'work'
-                  ? 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-inner'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
-              }`}
-            >
-              Focus ({pomodoroSettings.workMinutes}m)
-            </button>
-          </div>
+          {[
+            { id: 'work' as const, label: `Focus (${pomodoroSettings.workMinutes}m)`, border: 'from-indigo-500 via-purple-500 to-pink-500', shadow: 'shadow-[0_0_16px_rgba(99,102,241,0.35)]', bg: 'from-indigo-600 via-indigo-500 to-purple-600' },
+            { id: 'short_break' as const, label: `Break (${pomodoroSettings.shortBreakMinutes}m)`, border: 'from-emerald-400 via-teal-400 to-cyan-400', shadow: 'shadow-[0_0_16px_rgba(52,211,153,0.35)]', bg: 'from-emerald-600 to-teal-600' },
+            { id: 'long_break' as const, label: `Long (${pomodoroSettings.longBreakMinutes}m)`, border: 'from-cyan-400 via-blue-500 to-purple-500', shadow: 'shadow-[0_0_16px_rgba(6,182,212,0.35)]', bg: 'from-cyan-600 to-blue-600' },
+          ].map((modeItem) => {
+            const isModeActive = timerState.mode === modeItem.id;
+            return (
+              <button
+                key={modeItem.id}
+                onClick={() => changeMode(modeItem.id)}
+                className="relative rounded-xl p-[1.5px] select-none active:scale-95 transition-transform duration-150 cursor-pointer overflow-hidden"
+              >
+                {/* Active Glowing Border & Gradient Background Overlay */}
+                <div
+                  className={`absolute inset-0 rounded-xl bg-gradient-to-r ${modeItem.border} ${modeItem.shadow} transition-opacity duration-200 ease-out pointer-events-none ${
+                    isModeActive ? 'opacity-100' : 'opacity-0'
+                  }`}
+                />
 
-          {/* Break Mode Button */}
-          <div
-            className={`rounded-xl transition-all duration-200 ${
-              timerState.mode === 'short_break'
-                ? 'p-[1.5px] bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 shadow-[0_0_16px_rgba(52,211,153,0.35)]'
-                : 'p-[1.5px] bg-transparent'
-            }`}
-          >
-            <button
-              onClick={() => changeMode('short_break')}
-              className={`w-full py-2 px-1 rounded-[10px] text-xs font-bold transition-all duration-150 active:scale-95 flex items-center justify-center ${
-                timerState.mode === 'short_break'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-inner'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
-              }`}
-            >
-              Break ({pomodoroSettings.shortBreakMinutes}m)
-            </button>
-          </div>
-
-          {/* Long Break Mode Button */}
-          <div
-            className={`rounded-xl transition-all duration-200 ${
-              timerState.mode === 'long_break'
-                ? 'p-[1.5px] bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 shadow-[0_0_16px_rgba(6,182,212,0.35)]'
-                : 'p-[1.5px] bg-transparent'
-            }`}
-          >
-            <button
-              onClick={() => changeMode('long_break')}
-              className={`w-full py-2 px-1 rounded-[10px] text-xs font-bold transition-all duration-150 active:scale-95 flex items-center justify-center ${
-                timerState.mode === 'long_break'
-                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-inner'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
-              }`}
-            >
-              Long ({pomodoroSettings.longBreakMinutes}m)
-            </button>
-          </div>
+                {/* Inner button container */}
+                <div
+                  className={`relative z-10 w-full py-2 px-1 rounded-[10.5px] text-xs font-bold transition-colors duration-200 flex items-center justify-center ${
+                    isModeActive
+                      ? 'text-white shadow-inner'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {/* Active fill sheen */}
+                  <div
+                    className={`absolute inset-0 rounded-[10.5px] bg-gradient-to-r ${modeItem.bg} transition-opacity duration-200 pointer-events-none -z-10 ${
+                      isModeActive ? 'opacity-90' : 'opacity-0'
+                    }`}
+                  />
+                  <span>{modeItem.label}</span>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Dynamic Session Progress: Session 1 of 4 */}
         <div className="flex items-center justify-between px-3.5 py-1.5 rounded-[14px] bg-white/[0.03] border border-white/[0.06] backdrop-blur-md">
-          <span className="text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400' : 'bg-cyan-400'
-            }`} />
-            <span>
-              {timerState.mode === 'long_break'
-                ? `Cycle Complete (${pomodoroSettings.longBreakInterval || 4}/${pomodoroSettings.longBreakInterval || 4}) • Long Break`
-                : `Session ${timerState.sessionNumber} of ${pomodoroSettings.longBreakInterval || 4}`}
-            </span>
+          <span className="text-[11px] font-bold text-slate-200">
+            {timerState.mode === 'long_break'
+              ? `Cycle Complete (${pomodoroSettings.longBreakInterval || 4}/${pomodoroSettings.longBreakInterval || 4})`
+              : `Session ${timerState.sessionNumber} of ${pomodoroSettings.longBreakInterval || 4}`}
           </span>
 
           <div className="flex items-center gap-2.5">
@@ -326,7 +318,7 @@ export function CurrentTaskCard() {
                   strokeDasharray: `${circumference}px`,
                   strokeDashoffset: `${strokeDashoffset}px`,
                   filter: `drop-shadow(0 0 12px ${theme.glow})`,
-                  transition: timerState.status === 'running' ? 'stroke-dashoffset 0.95s linear' : 'stroke-dashoffset 0.35s ease-out'
+                  transition: timerState.status === 'running' ? 'stroke-dashoffset 1s linear' : 'stroke-dashoffset 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
                 }}
               />
             </svg>
@@ -339,10 +331,10 @@ export function CurrentTaskCard() {
               <span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
                 {timeFormatted}
               </span>
-              <div className="text-[10.5px] font-semibold flex items-center justify-center gap-1.5 pt-0.5">
+              <div className="h-6 flex items-center justify-center gap-1.5 pt-0.5">
                 {timerState.status === 'running' ? (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <span>Sprint Active</span>
                   </span>
                 ) : (
@@ -368,36 +360,36 @@ export function CurrentTaskCard() {
           </button>
 
           {/* Start / Pause Core Button with Colorful Border */}
-          <div
-            className={`flex-1 max-w-[210px] sm:max-w-[230px] p-[1.5px] rounded-2xl transition-all duration-300 shrink-0 ${
-              timerState.mode === 'work'
-                ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_25px_rgba(99,102,241,0.45)]'
-                : timerState.mode === 'short_break'
-                ? 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 shadow-[0_0_25px_rgba(52,211,153,0.45)]'
-                : 'bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 shadow-[0_0_25px_rgba(6,182,212,0.45)]'
-            }`}
-          >
+          <div className="relative flex-1 max-w-[210px] sm:max-w-[230px] p-[1.5px] rounded-2xl shrink-0 overflow-hidden">
+            {/* Work border overlay */}
+            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-[0_0_25px_rgba(99,102,241,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'work' ? 'opacity-100' : 'opacity-0'}`} />
+            {/* Short break border overlay */}
+            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 shadow-[0_0_25px_rgba(52,211,153,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'short_break' ? 'opacity-100' : 'opacity-0'}`} />
+            {/* Long break border overlay */}
+            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 shadow-[0_0_25px_rgba(6,182,212,0.45)] transition-opacity duration-300 pointer-events-none ${timerState.mode === 'long_break' ? 'opacity-100' : 'opacity-0'}`} />
+
             <button
               onClick={handleStartPause}
-              className={`w-full h-12 flex items-center justify-center gap-2 px-5 rounded-[14px] text-white font-black text-sm tracking-wide active:scale-95 transition-all shadow-inner ${
-                timerState.mode === 'work'
-                  ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:opacity-95'
-                  : timerState.mode === 'short_break'
-                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:opacity-95'
-                  : 'bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 hover:opacity-95'
-              }`}
+              className="relative z-10 w-full h-12 flex items-center justify-center gap-2 px-5 rounded-[14px] text-white font-black text-sm tracking-wide active:scale-95 transition-all shadow-inner overflow-hidden"
             >
-              {timerState.status === 'running' ? (
-                <>
-                  <Pause className="w-4 h-4 fill-white" />
-                  <span>Pause</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>{timerState.status === 'paused' ? 'Resume' : 'Start'} {timerState.mode === 'work' ? 'Focus' : 'Break'}</span>
-                </>
-              )}
+              {/* Internal background gradient overlays */}
+              <div className={`absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 transition-opacity duration-300 pointer-events-none ${timerState.mode === 'work' ? 'opacity-100' : 'opacity-0'}`} />
+              <div className={`absolute inset-0 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 transition-opacity duration-300 pointer-events-none ${timerState.mode === 'short_break' ? 'opacity-100' : 'opacity-0'}`} />
+              <div className={`absolute inset-0 bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 transition-opacity duration-300 pointer-events-none ${timerState.mode === 'long_break' ? 'opacity-100' : 'opacity-0'}`} />
+
+              <div className="relative z-10 flex items-center justify-center gap-2">
+                {timerState.status === 'running' ? (
+                  <>
+                    <Pause className="w-4 h-4 fill-white" />
+                    <span>Pause</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-white" />
+                    <span>{timerState.status === 'paused' ? 'Resume' : 'Start'} {timerState.mode === 'work' ? 'Focus' : 'Break'}</span>
+                  </>
+                )}
+              </div>
             </button>
           </div>
 
@@ -464,6 +456,7 @@ export function CurrentTaskCard() {
         </div>
       )}
 
+      </div>
     </div>
   );
 }

@@ -283,31 +283,88 @@ export function TimelineList() {
           return (
             <div
               key={item.id}
-              className={`group relative rounded-2xl p-3 sm:p-3.5 border transition-all duration-200 ${
+              className={`group relative rounded-2xl p-3 sm:p-3.5 transition-all duration-200 ${
                 isMenuOpen ? 'z-30' : 'z-10'
               } ${
                 active
-                  ? 'bg-gradient-to-br from-[#0c241e]/92 via-[#0a1815]/95 to-[#06100d]/98 border-emerald-400/60 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_22px_rgba(16,185,129,0.25),inset_0_1px_1px_rgba(52,211,153,0.3)]'
+                  ? 'bg-gradient-to-br from-[#0c1322]/98 via-[#080d18]/98 to-[#050810]/98 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_25px_rgba(139,92,246,0.25)]'
                   : isCompleted
-                  ? 'bg-gradient-to-br from-[#090D15]/60 via-[#070A10]/70 to-[#05070C]/80 border-emerald-500/20 opacity-70 backdrop-blur-md'
-                  : `bg-gradient-to-br from-[#121829]/90 via-[#0C111F]/92 to-[#080D18]/95 border-white/[0.08] ${categoryMeta.accentBorder} shadow-[0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20`
+                  ? 'border border-emerald-500/20 bg-gradient-to-br from-[#090D15]/60 via-[#070A10]/70 to-[#05070C]/80 opacity-70 backdrop-blur-md'
+                  : `border border-white/[0.08] bg-gradient-to-br from-[#121829]/90 via-[#0C111F]/92 to-[#080D18]/95 ${categoryMeta.accentBorder} shadow-[0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20`
               }`}
             >
+              {/* Running Slot Animated Circular Traveling Comet */}
+              {active && (
+                <>
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none rounded-2xl overflow-visible z-0" style={{ width: '100%', height: '100%' }}>
+                    <defs>
+                      <linearGradient id="rainbow-comet-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#06B6D4" />
+                        <stop offset="20%" stopColor="#3B82F6" />
+                        <stop offset="40%" stopColor="#8B5CF6" />
+                        <stop offset="60%" stopColor="#EC4899" />
+                        <stop offset="80%" stopColor="#F59E0B" />
+                        <stop offset="100%" stopColor="#10B981" />
+                      </linearGradient>
+                      <filter id="comet-glow-filter" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="2.5" result="blur" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+
+                    {/* Static subtle track */}
+                    <rect
+                      x="1"
+                      y="1"
+                      width="calc(100% - 2px)"
+                      height="calc(100% - 2px)"
+                      rx="15"
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.1)"
+                      strokeWidth="1.5"
+                    />
+
+                    {/* Glowing Traveling Comet circulating around perimeter */}
+                    <rect
+                      x="1"
+                      y="1"
+                      width="calc(100% - 2px)"
+                      height="calc(100% - 2px)"
+                      rx="15"
+                      fill="none"
+                      stroke="url(#rainbow-comet-gradient)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      pathLength="100"
+                      strokeDasharray="25 75"
+                      filter="url(#comet-glow-filter)"
+                      className="animate-border-circulate"
+                    />
+                  </svg>
+
+                  {/* Colorful ambient aura glow */}
+                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-500/25 via-purple-500/25 via-pink-500/25 to-amber-500/20 blur-lg pointer-events-none -z-10 animate-pulse" />
+                </>
+              )}
+
               {/* Isolated active ambient corner bloom */}
               {active && (
-                <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                  <div className="absolute -top-8 -right-8 w-28 h-28 bg-emerald-500/20 rounded-full blur-2xl" />
+                <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none z-0">
+                  <div className="absolute -top-8 -right-8 w-32 h-32 bg-gradient-to-br from-cyan-500/20 via-purple-500/15 to-pink-500/20 rounded-full blur-2xl" />
                 </div>
               )}
 
               {/* Top-Aligned Row Layout */}
-              <div className="flex items-start justify-between gap-2.5">
+              <div className="relative z-10 flex items-start justify-between gap-2.5">
                 
                 {/* Left: Completion Button (Matches exact text height: w-4 h-4) */}
                 <div className="flex items-start gap-2.5 flex-1 min-w-0">
                   <button
                     onClick={() => handleCheckTask(item.id)}
-                    className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-200 active:scale-75 shrink-0 ${
+                    className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shrink-0 ${
                       isCompleted
                         ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 border border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.6)] text-white'
                         : active
@@ -316,11 +373,9 @@ export function TimelineList() {
                     }`}
                     aria-label={isCompleted ? "Mark task incomplete" : "Mark task complete"}
                   >
-                    {isCompleted ? (
-                      <CheckCheck className="w-2.5 h-2.5 stroke-[3]" />
-                    ) : active ? (
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    ) : null}
+                    {isCompleted && (
+                      <CheckCheck className="w-2.5 h-2.5 stroke-[3] animate-in zoom-in-95 duration-150" />
+                    )}
                   </button>
 
                   <div className="space-y-1.5 flex-1 min-w-0">
@@ -331,7 +386,6 @@ export function TimelineList() {
 
                       {active && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[9px] font-black uppercase tracking-wider shadow-[0_0_8px_rgba(52,211,153,0.35)] leading-none">
-                          <span className="w-1 h-1 rounded-full bg-emerald-400 animate-ping" />
                           <span>Now</span>
                         </span>
                       )}
@@ -375,7 +429,7 @@ export function TimelineList() {
                 <div data-routine-menu className="relative shrink-0 self-start mt-0.5">
                   <button
                     onClick={() => setOpenMenuId(isMenuOpen ? null : item.id)}
-                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 flex items-center justify-center transition-all active:scale-75 ${
+                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 flex items-center justify-center transition-all active:scale-90 ${
                       isMenuOpen
                         ? 'text-indigo-300 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]'
                         : 'text-slate-400 hover:text-white active:text-indigo-300'
@@ -428,7 +482,7 @@ export function TimelineList() {
       {/* Add / Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
-          <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.14] bg-gradient-to-b from-[#141C32]/95 via-[#0E1526]/95 to-[#080B14]/98 backdrop-blur-3xl p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_35px_rgba(99,102,241,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)] space-y-4">
+          <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.14] bg-gradient-to-b from-[#141C32]/95 via-[#0E1526]/95 to-[#080B14]/98 backdrop-blur-3xl p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_35px_rgba(99,102,241,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)] space-y-4 animate-in zoom-in-95 duration-200">
             
             {/* Top Aurora Sheen Line */}
             <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400 via-indigo-500 to-transparent opacity-85 pointer-events-none" />

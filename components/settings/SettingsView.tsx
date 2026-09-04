@@ -366,10 +366,10 @@ export function SettingsView() {
               </div>
 
               {/* Glowing Toggle Switch */}
-              <div className={`w-10 h-5.5 rounded-full transition-colors relative p-0.5 shrink-0 ${
+              <div className={`w-10 h-5.5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${
                 pomodoroSettings.autoStartBreaks ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-700'
               }`}>
-                <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-md ${
+                <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${
                   pomodoroSettings.autoStartBreaks ? 'translate-x-4.5' : 'translate-x-0'
                 }`} />
               </div>
@@ -395,10 +395,10 @@ export function SettingsView() {
               </div>
 
               {/* Glowing Toggle Switch */}
-              <div className={`w-10 h-5.5 rounded-full transition-colors relative p-0.5 shrink-0 ${
+              <div className={`w-10 h-5.5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${
                 pomodoroSettings.autoStartFocus ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-slate-700'
               }`}>
-                <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-md ${
+                <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${
                   pomodoroSettings.autoStartFocus ? 'translate-x-4.5' : 'translate-x-0'
                 }`} />
               </div>
@@ -417,7 +417,7 @@ export function SettingsView() {
                 <button
                   key={count}
                   onClick={() => handleLongBreakIntervalChange(count)}
-                  className={`px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 ${
+                  className={`px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all duration-200 active:scale-95 ${
                     (pomodoroSettings.longBreakInterval || 4) === count
                       ? 'bg-gradient-to-tr from-cyan-600 to-indigo-600 text-white shadow-[0_0_12px_rgba(6,182,212,0.5)] border border-cyan-400/50'
                       : 'bg-white/[0.04] border border-white/[0.08] text-slate-400 hover:text-white'
@@ -444,11 +444,11 @@ export function SettingsView() {
             {/* Sound Toggle Switch */}
             <div
               onClick={() => handleToggle('soundEnabled')}
-              className={`cursor-pointer w-10 h-5.5 rounded-full transition-colors relative p-0.5 shrink-0 ${
+              className={`cursor-pointer w-10 h-5.5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${
                 pomodoroSettings.soundEnabled ? 'bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.5)]' : 'bg-slate-700'
               }`}
             >
-              <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-md ${
+              <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${
                 pomodoroSettings.soundEnabled ? 'translate-x-4.5' : 'translate-x-0'
               }`} />
             </div>
@@ -658,10 +658,10 @@ export function SettingsView() {
               <p className="text-[11px] text-slate-400">Delete all scheduled items and start fresh</p>
             </div>
             {!showResetConfirm ? (
-              <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 shadow-[0_0_16px_rgba(244,63,94,0.35)] shrink-0">
+              <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 shadow-[0_0_16px_rgba(244,63,94,0.35)] shrink-0 animate-in fade-in duration-150">
                 <button
                   onClick={() => setShowResetConfirm(true)}
-                  className="px-3.5 py-2 rounded-[10px] bg-[#0E1424] hover:bg-[#141C30] active:scale-95 transition-all flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-[10px] bg-[#0E1424] hover:bg-[#141C30] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5 text-rose-400 stroke-[2.5]" />
                   <span className="bg-gradient-to-r from-white via-rose-100 to-rose-300 bg-clip-text text-transparent text-xs font-black whitespace-nowrap">
@@ -670,12 +670,12 @@ export function SettingsView() {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 animate-in fade-in zoom-in-95 duration-150">
                 {/* Confirm Button with Radiant Rose-Amber Gradient Border */}
                 <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-rose-500 via-red-500 to-amber-500 shadow-[0_0_16px_rgba(244,63,94,0.35)] shrink-0">
                   <button
                     onClick={handleClearSchedule}
-                    className="px-3.5 py-2 rounded-[10px] bg-[#0E1424] hover:bg-[#1A121A] active:scale-95 transition-all flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-[10px] bg-[#0E1424] hover:bg-[#1A121A] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5 text-rose-400 stroke-[2.8]" />
                     <span className="bg-gradient-to-r from-white via-rose-100 to-rose-300 bg-clip-text text-transparent text-xs font-black whitespace-nowrap">
@@ -688,7 +688,7 @@ export function SettingsView() {
                 <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-slate-500/60 via-slate-400/50 to-slate-600/60 shadow-sm shrink-0">
                   <button
                     onClick={() => setShowResetConfirm(false)}
-                    className="px-3.5 py-2 rounded-[10px] bg-[#0E1424] hover:bg-[#141C30] active:scale-95 text-slate-200 hover:text-white text-xs font-black transition-all flex items-center gap-1.5"
+                    className="px-3.5 py-2 rounded-[10px] bg-[#0E1424] hover:bg-[#141C30] active:scale-95 text-slate-200 hover:text-white text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5 text-slate-400 stroke-[2.5]" />
                     <span className="whitespace-nowrap">Cancel</span>

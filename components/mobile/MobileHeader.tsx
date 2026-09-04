@@ -16,54 +16,39 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
 
   // Cloud sync appearance
   let cloudBadge = {
-    dotBg: 'bg-emerald-400',
-    dotGlow: 'shadow-[0_0_8px_rgba(52,211,153,0.8)]',
     badgeBg: 'bg-emerald-500/10 border-emerald-500/25',
     textGradient: 'from-emerald-200 via-teal-200 to-emerald-300',
     text: 'Synced',
     title: lastSyncedAt ? `Synced with Supabase (${new Date(lastSyncedAt).toLocaleTimeString()})` : 'Synced with Supabase',
-    pulse: true,
   };
 
   if (syncStatus === 'syncing') {
     cloudBadge = {
-      dotBg: 'bg-cyan-400',
-      dotGlow: 'shadow-[0_0_8px_rgba(34,211,238,0.8)]',
       badgeBg: 'bg-cyan-500/10 border-cyan-500/25',
       textGradient: 'from-cyan-200 via-sky-200 to-blue-300',
       text: 'Syncing',
       title: 'Syncing routine & settings...',
-      pulse: true,
     };
   } else if (syncStatus === 'table_missing') {
     cloudBadge = {
-      dotBg: 'bg-amber-400',
-      dotGlow: 'shadow-[0_0_8px_rgba(251,191,36,0.8)]',
       badgeBg: 'bg-amber-500/15 border-amber-500/35',
       textGradient: 'from-amber-200 via-orange-200 to-yellow-300',
       text: 'Setup DB',
       title: 'Database table missing - Open Settings to view SQL setup',
-      pulse: true,
     };
   } else if (syncStatus === 'error') {
     cloudBadge = {
-      dotBg: 'bg-rose-400',
-      dotGlow: 'shadow-[0_0_8px_rgba(251,113,133,0.8)]',
       badgeBg: 'bg-rose-500/15 border-rose-500/35',
       textGradient: 'from-rose-200 via-pink-200 to-rose-300',
       text: 'Offline',
       title: 'Cloud sync offline - tap to retry',
-      pulse: false,
     };
   } else if (syncStatus === 'local_only') {
     cloudBadge = {
-      dotBg: 'bg-slate-400',
-      dotGlow: 'shadow-none',
       badgeBg: 'bg-slate-500/10 border-slate-500/25',
       textGradient: 'from-slate-300 to-slate-400',
       text: 'Local',
       title: 'Saved locally - sign in to enable cloud sync',
-      pulse: false,
     };
   }
 
@@ -191,9 +176,8 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
             type="button"
             onClick={() => syncNow()}
             title={cloudBadge.title}
-            className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full ${cloudBadge.badgeBg} border text-[10px] uppercase tracking-wider font-black active:scale-95 transition-all cursor-pointer`}
+            className={`flex items-center px-2.5 py-0.5 rounded-full ${cloudBadge.badgeBg} border text-[10px] uppercase tracking-wider font-black active:scale-95 transition-all cursor-pointer`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${cloudBadge.dotBg} ${cloudBadge.pulse ? 'animate-pulse' : ''} ${cloudBadge.dotGlow}`} />
             <span className={`bg-gradient-to-r ${cloudBadge.textGradient} bg-clip-text text-transparent font-black`}>
               {cloudBadge.text}
             </span>
@@ -204,15 +188,15 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
               <button
                 onClick={onTimerClick}
                 className={`animate-in fade-in duration-200 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shadow-md active:scale-95 transition-all ${timerState.mode === 'work'
-                    ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
-                    : timerState.mode === 'short_break'
-                      ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                      : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                  ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
+                  : timerState.mode === 'short_break'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                    : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
                   }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${timerState.status === 'running'
-                    ? timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400 animate-pulse'
-                    : 'bg-slate-400'
+                  ? timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400 animate-pulse'
+                  : 'bg-slate-400'
                   }`} />
                 <span className="text-[11px] font-black font-mono tracking-wider">
                   {badgeTime}

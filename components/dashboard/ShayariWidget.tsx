@@ -15,7 +15,7 @@ export function ShayariWidget() {
       const next = getRandomShayari(currentShayari.id);
       setCurrentShayari(next);
       setIsFlipping(false);
-    }, 180);
+    }, 200);
   };
 
   return (
@@ -46,7 +46,7 @@ export function ShayariWidget() {
       </div>
 
       {/* Shayari Lines with Smooth Flip Transition */}
-      <div className={`transition-all duration-300 space-y-3.5 ${isFlipping ? 'opacity-0 scale-95 translate-y-1' : 'opacity-100 scale-100 translate-y-0'}`}>
+      <div className={`transition-all duration-200 ease-out space-y-3.5 ${isFlipping ? 'opacity-0 scale-[0.98] translate-y-1' : 'opacity-100 scale-100 translate-y-0'}`}>
         <div className="space-y-1 my-0.5 pl-1 border-l-2 border-amber-400/40">
           {currentShayari.lines.map((line, idx) => (
             <p key={idx} className="text-base sm:text-lg font-serif font-bold text-amber-100/95 leading-relaxed tracking-wide drop-shadow-sm pl-2">
