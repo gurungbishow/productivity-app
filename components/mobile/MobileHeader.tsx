@@ -103,7 +103,7 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
       <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 via-indigo-500/40 to-transparent pointer-events-none" />
 
       {/* Top Row: Left (Greeting with Avatar emblem) & Right (Cloud Status) */}
-      <div className="flex items-center justify-between gap-2.5">
+      <div className="flex items-start justify-between gap-2.5 min-h-[42px] sm:min-h-[46px]">
         {/* Left: Emblem + Greeting with Vibrant Gradient */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr ${iconTheme.ring} p-[1px] ${iconTheme.glow} shrink-0 transition-all duration-300`}>
@@ -122,8 +122,8 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
           </div>
         </div>
 
-        {/* Right: Cloud Status Pill & Countdown Timer Badge below */}
-        <div className="shrink-0 flex flex-col items-end justify-center gap-1">
+        {/* Right: Cloud Status Pill (permanently pinned to top) & Timer Badge below */}
+        <div className="shrink-0 flex flex-col items-end gap-1">
           <span className="flex items-center gap-1.5 px-2 py-0.5 sm:py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase tracking-wider font-black shadow-[0_0_15px_rgba(16,185,129,0.15)]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
             Cloud
@@ -131,7 +131,7 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
           {showTimerBadge && (
             <button 
               onClick={onTimerClick}
-              className={`flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full border shadow-md active:scale-95 transition-all ${
+              className={`animate-in fade-in slide-in-from-top-1 duration-200 flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full border shadow-md active:scale-95 transition-all ${
                 timerState.mode === 'work' 
                   ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]' 
                   : timerState.mode === 'short_break'
