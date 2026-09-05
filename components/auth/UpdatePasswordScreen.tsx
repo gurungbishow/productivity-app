@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { supabase, getAppURL } from '@/lib/supabase';
-import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, KeyRound, ArrowRight, Send } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Mail, Lock, Eye, EyeOff, Loader2, CheckCircle2, KeyRound, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 
 export function UpdatePasswordScreen() {
@@ -14,38 +14,10 @@ export function UpdatePasswordScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
-  const [emailSuccessMsg, setEmailSuccessMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const displayError = error || recoveryError;
-
-  const handleSendResetEmail = async () => {
-    if (!email.trim() || !email.includes('@')) {
-      setError('Please enter a valid email address first.');
-      return;
-    }
-    if (!supabase) {
-      setError('Authentication is not configured.');
-      return;
-    }
-    setIsSendingEmail(true);
-    setError(null);
-    setEmailSuccessMsg(null);
-    try {
-      const redirectUrl = `${getAppURL()}/`;
-      const { error: sendErr } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: redirectUrl,
-      });
-      if (sendErr) throw sendErr;
-      setEmailSuccessMsg(`Password reset link sent to ${email.trim()}! Click "Reset Password" in the email to open ${getAppURL()} and set your new password.`);
-    } catch (err: unknown) {
-      setError((err as Error).message || 'Failed to send reset email.');
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,12 +213,6 @@ export function UpdatePasswordScreen() {
                   </div>
                 </div>
 
-                {emailSuccessMsg && (
-                  <div className="p-3.5 mt-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium animate-in slide-in-from-top-2 leading-relaxed">
-                    {emailSuccessMsg}
-                  </div>
-                )}
-
                 {displayError && (
                   <div className="p-3 mt-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium animate-in slide-in-from-top-2 leading-relaxed">
                     {displayError}
@@ -273,30 +239,11 @@ export function UpdatePasswordScreen() {
                   </div>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-white/[0.06] flex items-center justify-between text-xs">
-                  <button
-                    type="button"
-                    onClick={handleSendResetEmail}
-                    disabled={isSendingEmail}
-                    className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    {isSendingEmail ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        Sending link...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-3.5 h-3.5" />
-                        Send reset link to email
-                      </>
-                    )}
-                  </button>
-
+                <div className="mt-5 text-center">
                   <button
                     type="button"
                     onClick={clearRecovery}
-                    className="text-slate-400 hover:text-white font-medium transition-colors cursor-pointer"
+                    className="text-xs text-slate-400 hover:text-cyan-300 font-medium transition-colors cursor-pointer"
                   >
                     Back to Sign In
                   </button>

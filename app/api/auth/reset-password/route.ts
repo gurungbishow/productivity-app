@@ -36,7 +36,10 @@ export async function POST(request: Request) {
           },
         });
 
-        const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+          page: 1,
+          perPage: 1000,
+        });
         if (listError) throw listError;
 
         const targetUser = usersData.users.find(
