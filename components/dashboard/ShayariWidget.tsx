@@ -15,8 +15,7 @@ export function ShayariWidget() {
     if (!shayaris || shayaris.length === 0) {
       return {
         id: 1,
-        lines: ['Consistency creates mastery.'],
-        translation: 'Small daily steps compound into life-changing triumphs.',
+        lines: 'Consistency creates mastery.',
       };
     }
     if (selectedShayariId !== null) {
@@ -25,6 +24,17 @@ export function ShayariWidget() {
     }
     return getDailyShayari(new Date(), shayaris);
   }, [shayaris, selectedShayariId]);
+
+  // Derive active lines regardless of string or array format
+  const displayLines = useMemo(() => {
+    if (Array.isArray(displayShayari.lines)) {
+      return displayShayari.lines;
+    }
+    if (typeof displayShayari.lines === 'string') {
+      return displayShayari.lines.split('\n').filter(Boolean);
+    }
+    return [];
+  }, [displayShayari]);
 
   const handleNext = () => {
     setIsFlipping(true);
@@ -53,7 +63,7 @@ export function ShayariWidget() {
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/35 text-amber-300 text-[10.5px] font-black uppercase tracking-wider backdrop-blur-xl shadow-[0_0_12px_rgba(245,158,11,0.25)]">
           <Quote className="w-3.5 h-3.5 text-amber-400" />
-          <span>Daily Wisdom & Lessons</span>
+          <span>Daily Wisdom</span>
         </span>
 
         <span className="text-[10px] font-bold text-amber-400/70 uppercase tracking-widest flex items-center gap-1">
@@ -62,20 +72,14 @@ export function ShayariWidget() {
         </span>
       </div>
 
-      {/* Shayari Lines with Smooth Flip Transition */}
-      <div className={`transition-all duration-200 ease-out space-y-3.5 ${isFlipping ? 'opacity-0 scale-[0.98] translate-y-1' : 'opacity-100 scale-100 translate-y-0'}`}>
-        <div className="space-y-1 my-0.5 pl-1 border-l-2 border-amber-400/40">
-          {displayShayari.lines.map((line, idx) => (
-            <p key={idx} className="text-base sm:text-lg font-serif font-bold text-amber-100/95 leading-relaxed tracking-wide drop-shadow-sm pl-2">
+      {/* Shayari Lines with Smooth Flip Transition & Locked Consistent Height */}
+      <div className={`transition-all duration-200 ease-out min-h-[116px] sm:min-h-[122px] flex items-center ${isFlipping ? 'opacity-0 scale-[0.98] translate-y-1' : 'opacity-100 scale-100 translate-y-0'}`}>
+        <div className="w-full pl-1 border-l-2 border-amber-400/40 my-auto py-0.5">
+          {displayLines.map((line, idx) => (
+            <p key={idx} className="text-base sm:text-[17px] font-serif font-bold text-amber-100/95 leading-relaxed tracking-wide drop-shadow-sm pl-2.5 text-justify">
               {line}
             </p>
           ))}
-        </div>
-
-        {/* English Meaning Box (Translucent Liquid Amber Glass) */}
-        <div className="p-3.5 rounded-2xl bg-amber-500/[0.07] border border-amber-400/[0.2] backdrop-blur-xl text-xs text-slate-300 leading-relaxed shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] space-y-0.5">
-          <span className="text-amber-400 font-black mr-1.5 tracking-tight uppercase text-[10px]">Essence:</span>
-          <span className="text-slate-200 font-medium">{displayShayari.translation}</span>
         </div>
       </div>
 

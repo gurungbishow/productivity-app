@@ -75,6 +75,13 @@ function MobileAppContent() {
             </div>
           )}
 
+          {/* Application Footer */}
+          <footer className="pt-6 pb-2 text-center">
+            <p className="text-xs text-slate-500 font-medium tracking-wider">
+              My Daily Routine @ 2026
+            </p>
+          </footer>
+
         </main>
 
         {/* Pinned Mobile Bottom Navigation Bar (Dashboard, Timetable, Settings) */}

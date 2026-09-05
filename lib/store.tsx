@@ -30,10 +30,12 @@ interface AppContextType {
   addCategory: (cat: Omit<CustomCategory, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<CustomCategory>) => void;
   deleteCategory: (id: string) => void;
+  resetCategoriesToDefault: () => void;
   shayaris: Shayari[];
   addShayari: (item: Omit<Shayari, 'id'>) => void;
   updateShayari: (id: number, updates: Partial<Shayari>) => void;
   deleteShayari: (id: number) => void;
+  resetShayarisToDefault: () => void;
   activeTaskForTimer: string | null;
   setActiveTaskForTimer: (taskName: string | null) => void;
   toggleTaskCompleted: (id: string) => boolean; // returns new completed status
@@ -77,6 +79,7 @@ const STORAGE_KEYS = {
   USER_DEFAULT_SCHEDULE: 'bishow_productivity_user_default_v1',
   CATEGORIES: 'bishow_productivity_custom_categories_v1',
   SHAYARIS: 'bishow_productivity_custom_shayaris_v1',
+  SHAYARIS_VERSION: 'bishow_productivity_shayaris_version_v2',
 };
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -251,14 +254,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
-      // Load Custom Shayaris
+      // Load Custom Shayaris with automatic v2 migration
       const savedShayaris = localStorage.getItem(STORAGE_KEYS.SHAYARIS);
-      if (savedShayaris) {
+      const shayariVersion = localStorage.getItem(STORAGE_KEYS.SHAYARIS_VERSION);
+      if (savedShayaris && shayariVersion === 'v2') {
         try {
           const parsed = JSON.parse(savedShayaris);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setShayaris(parsed);
           }
+        } catch {}
+      } else {
+        // Upgrade to the newly updated MOTIVATIONAL_SHAYARIS from shayaris.ts
+        let customUserQuotes: Shayari[] = [];
+        if (savedShayaris) {
+          try {
+            const parsed = JSON.parse(savedShayaris);
+            if (Array.isArray(parsed)) {
+              // Preserve any custom user-added quotes (id > 1000)
+              customUserQuotes = parsed.filter(item => item.id > 1000);
+            }
+          } catch {}
+        }
+        const updatedList = [...MOTIVATIONAL_SHAYARIS, ...customUserQuotes];
+        setShayaris(updatedList);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SHAYARIS, JSON.stringify(updatedList));
+          localStorage.setItem(STORAGE_KEYS.SHAYARIS_VERSION, 'v2');
         } catch {}
       }
 
@@ -560,7 +582,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setCategories(cloudData.custom_categories);
         }
         if (Array.isArray(cloudData.custom_shayaris) && cloudData.custom_shayaris.length > 0) {
-          setShayaris(cloudData.custom_shayaris);
+          // Check if remote cloud data is legacy version (contains translation or id <= 21 with array lines)
+          const isLegacy = cloudData.custom_shayaris.some(
+            (item: Shayari) => Boolean(item.translation) || (Array.isArray(item.lines) && item.id <= 21)
+          );
+          if (isLegacy) {
+            const customUserQuotes = cloudData.custom_shayaris.filter((item: Shayari) => item.id > 1000);
+            const upgraded = [...MOTIVATIONAL_SHAYARIS, ...customUserQuotes];
+            setShayaris(upgraded);
+            try {
+              localStorage.setItem(STORAGE_KEYS.SHAYARIS, JSON.stringify(upgraded));
+              localStorage.setItem(STORAGE_KEYS.SHAYARIS_VERSION, 'v2');
+            } catch {}
+            // Push updated quotes to cloud database
+            saveUserDataToCloud(userId, {
+              profile: profileRef.current,
+              schedule: scheduleRef.current,
+              user_default_schedule: userDefaultScheduleRef.current,
+              completed_tasks: { date: getTodayString(), ids: completedTaskIdsRef.current },
+              focus_logs: focusLogsRef.current,
+              pomodoro_settings: pomodoroSettingsRef.current,
+              favorite_shayari_ids: favoriteShayariIdsRef.current,
+              custom_categories: categoriesRef.current,
+              custom_shayaris: upgraded,
+            });
+          } else {
+            setShayaris(cloudData.custom_shayaris);
+          }
         }
 
         setTimeout(() => {
@@ -986,6 +1034,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const resetCategoriesToDefault = useCallback(() => {
+    setCategories(DEFAULT_CATEGORIES);
+    try {
+      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(DEFAULT_CATEGORIES));
+    } catch {}
+    if (user) {
+      saveUserDataToCloud(user.id, {
+        profile: profileRef.current,
+        schedule: scheduleRef.current,
+        user_default_schedule: userDefaultScheduleRef.current,
+        completed_tasks: { date: getTodayString(), ids: completedTaskIdsRef.current },
+        focus_logs: focusLogsRef.current,
+        pomodoro_settings: pomodoroSettingsRef.current,
+        favorite_shayari_ids: favoriteShayariIdsRef.current,
+        custom_categories: DEFAULT_CATEGORIES,
+        custom_shayaris: shayarisRef.current,
+      });
+    }
+  }, [user]);
+
   const addShayari = useCallback((item: Omit<Shayari, 'id'>) => {
     const newId = Date.now();
     setShayaris((prev) => [{ ...item, id: newId }, ...prev]);
@@ -1002,6 +1070,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     setFavoriteShayariIds((prev) => prev.filter((favId) => favId !== id));
   }, []);
+
+  const resetShayarisToDefault = useCallback(() => {
+    setShayaris(MOTIVATIONAL_SHAYARIS);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SHAYARIS, JSON.stringify(MOTIVATIONAL_SHAYARIS));
+      localStorage.setItem(STORAGE_KEYS.SHAYARIS_VERSION, 'v2');
+    } catch {}
+    if (user) {
+      saveUserDataToCloud(user.id, {
+        profile: profileRef.current,
+        schedule: scheduleRef.current,
+        user_default_schedule: userDefaultScheduleRef.current,
+        completed_tasks: { date: getTodayString(), ids: completedTaskIdsRef.current },
+        focus_logs: focusLogsRef.current,
+        pomodoro_settings: pomodoroSettingsRef.current,
+        favorite_shayari_ids: favoriteShayariIdsRef.current,
+        custom_categories: categoriesRef.current,
+        custom_shayaris: MOTIVATIONAL_SHAYARIS,
+      });
+    }
+  }, [user]);
 
   // --- Pomodoro Global Timer Engine ---
   
@@ -1367,10 +1456,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addCategory,
         updateCategory,
         deleteCategory,
+        resetCategoriesToDefault,
         shayaris,
         addShayari,
         updateShayari,
         deleteShayari,
+        resetShayarisToDefault,
         todayFocusMinutes,
         todayCompletedCount,
         timerState,

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User as UserIcon } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User as UserIcon, Sparkles, KeyRound, UserPlus } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
 export function LoginScreen() {
@@ -25,54 +25,43 @@ export function LoginScreen() {
       return;
     }
 
+    setIsLoading(true);
     setError(null);
     setSuccess(null);
-    setIsLoading(true);
 
     try {
       if (isForgotPassword) {
-        if (!email.trim()) {
-          throw new Error('Please enter your email address');
-        }
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/#update-password` : undefined,
         });
-        if (error) throw error;
-        setSuccess('Password reset link sent! Check your email.');
-        // Don't auto-redirect, let the user read the success message.
+        if (resetError) throw resetError;
+        setSuccess('Check your email for the password reset link.');
       } else if (isSignUp) {
-        if (!name.trim()) {
-          throw new Error('Please enter your full name');
-        }
-        const { data, error } = await supabase.auth.signUp({
-          email,
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
           password,
           options: {
             data: {
-              full_name: name,
+              name: name.trim() || 'Hero',
             }
           }
         });
+        if (signUpError) throw signUpError;
         
-        if (error) throw error;
-        
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-          throw new Error('An account with this email already exists.');
+        if (data.user && !data.session) {
+          setSuccess('Account created! Please check your email to verify your account.');
+        } else {
+          setSuccess('Account created successfully! Welcome aboard.');
+          if (name.trim()) {
+            updateProfile({ name: name.trim() });
+          }
         }
-
-        updateProfile({ name });
       } else {
-        const { error, data } = await supabase.auth.signInWithPassword({
-          email,
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
           password,
         });
-        
-        if (error) throw error;
-
-        // If sign in successful, update local profile name if it exists in user metadata
-        if (data.user?.user_metadata?.full_name) {
-          updateProfile({ name: data.user.user_metadata.full_name });
-        }
+        if (signInError) throw signInError;
       }
     } catch (err: unknown) {
       setError((err as Error).message || 'An error occurred during authentication.');
@@ -86,9 +75,6 @@ export function LoginScreen() {
     setIsForgotPassword(false);
     setError(null);
     setSuccess(null);
-    setEmail('');
-    setPassword('');
-    setName('');
   };
 
   const toggleForgotPassword = () => {
@@ -99,14 +85,11 @@ export function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-[#05070B] flex justify-center selection:bg-indigo-500 selection:text-white">
-      
-      {/* Mobile-Only Application Shell */}
-      <div className="w-full max-w-md min-h-screen bg-[#080B11] border-x border-white/[0.06] flex flex-col items-center justify-center relative shadow-2xl overflow-x-hidden p-4 sm:p-6">
-        
-        {/* Ambient atmospheric background glows */}
-        <div className="absolute top-12 -left-20 w-72 h-72 bg-indigo-600/12 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute top-96 -right-20 w-80 h-80 bg-purple-600/10 rounded-full blur-[110px] pointer-events-none" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#080C16]/80 backdrop-blur-xl animate-in fade-in duration-300">
+      <div className="w-full max-w-md relative">
+        {/* Ambient atmospheric glows behind modal */}
+        <div className="absolute -top-24 -left-20 w-72 h-72 bg-indigo-600/15 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-48 -right-20 w-80 h-80 bg-purple-600/12 rounded-full blur-[110px] pointer-events-none" />
         <div className="absolute bottom-36 left-10 w-72 h-72 bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Main Login Card */}
@@ -118,6 +101,25 @@ export function LoginScreen() {
 
           <div className="p-6 sm:p-8">
           <div className="text-center mb-8">
+            {/* Top Icon Badge */}
+            <div className="flex justify-center mb-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all duration-300 ${
+                isForgotPassword
+                  ? 'bg-amber-500/15 border-amber-400/30 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                  : isSignUp
+                  ? 'bg-indigo-500/15 border-indigo-400/30 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.25)]'
+                  : 'bg-cyan-500/15 border-cyan-400/30 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.25)]'
+              }`}>
+                {isForgotPassword ? (
+                  <KeyRound className="w-6 h-6 stroke-[2.2]" />
+                ) : isSignUp ? (
+                  <UserPlus className="w-6 h-6 stroke-[2.2]" />
+                ) : (
+                  <Sparkles className="w-6 h-6 stroke-[2.2]" />
+                )}
+              </div>
+            </div>
+
             <h2 className="text-[28px] font-black text-white tracking-tight leading-tight">
               {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
             </h2>
@@ -125,8 +127,8 @@ export function LoginScreen() {
               {isForgotPassword
                 ? 'Enter your email to receive a reset link'
                 : isSignUp 
-                ? 'Join to sync your routine across devices' 
-                : 'Sign in to access your cloud backup'}
+                ? 'Start tracking your daily routines and focus' 
+                : 'Sign in to continue'}
             </p>
           </div>
 
@@ -135,9 +137,6 @@ export function LoginScreen() {
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 ml-1">Full Name</label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <UserIcon className="h-5 w-5 text-slate-400" />
-                  </div>
                   <input
                     type="text"
                     value={name}
@@ -146,6 +145,9 @@ export function LoginScreen() {
                     placeholder="Bishow"
                     required
                   />
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                    <UserIcon className="h-5 w-5 text-slate-400 stroke-[2]" />
+                  </div>
                 </div>
               </div>
             )}
@@ -153,9 +155,6 @@ export function LoginScreen() {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 ml-1">Email Address</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-slate-400" />
-                </div>
                 <input
                   type="email"
                   value={email}
@@ -164,6 +163,9 @@ export function LoginScreen() {
                   placeholder="you@example.com"
                   required
                 />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                  <Mail className="h-5 w-5 text-slate-400 stroke-[2]" />
+                </div>
               </div>
             </div>
 
@@ -182,9 +184,6 @@ export function LoginScreen() {
                   )}
                 </div>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-slate-400" />
-                  </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -194,10 +193,13 @@ export function LoginScreen() {
                     required
                     minLength={6}
                   />
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                    <Lock className="h-5 w-5 text-slate-400 stroke-[2]" />
+                  </div>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors"
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors z-10"
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
@@ -265,6 +267,13 @@ export function LoginScreen() {
           </div>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-5 text-center relative z-10">
+          <p className="text-xs text-slate-500 font-medium tracking-wider">
+            My Daily Routine @ 2026
+          </p>
+        </footer>
       </div>
     </div>
   );

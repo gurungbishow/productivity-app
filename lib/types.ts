@@ -70,8 +70,8 @@ export interface FocusSessionLog {
 
 export interface Shayari {
   id: number;
-  lines: string[];
-  translation: string;
+  lines: string | string[];
+  translation?: string;
 }
 
 export interface UserProfile {

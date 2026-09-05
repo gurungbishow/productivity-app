@@ -15,8 +15,14 @@ create table if not exists public.user_data (
   focus_logs jsonb not null default '[]'::jsonb,
   pomodoro_settings jsonb not null default '{}'::jsonb,
   favorite_shayari_ids jsonb not null default '[]'::jsonb,
+  custom_categories jsonb not null default '[]'::jsonb,
+  custom_shayaris jsonb not null default '[]'::jsonb,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Ensure columns exist if table was previously created
+alter table public.user_data add column if not exists custom_categories jsonb not null default '[]'::jsonb;
+alter table public.user_data add column if not exists custom_shayaris jsonb not null default '[]'::jsonb;
 
 -- 2. Grant table permissions to authenticated users, anon, and service role
 grant usage on schema public to authenticated, anon;

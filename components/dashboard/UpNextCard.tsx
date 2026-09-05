@@ -66,19 +66,21 @@ export function UpNextCard({ onViewSchedule }: UpNextCardProps) {
           </div>
         </div>
 
-        <div className="p-[1px] rounded-2xl bg-gradient-to-tr from-cyan-400/40 to-indigo-400/40 group-hover:from-cyan-300 group-hover:to-indigo-300 transition-all duration-300 shrink-0 shadow-sm">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewSchedule();
-            }}
-            className="p-2.5 rounded-[15px] bg-white/[0.08] hover:bg-white/[0.16] border border-white/[0.18] text-slate-200 group-hover:text-white backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-90 transition-all duration-200 flex items-center justify-center"
-            title="View Schedule"
-            aria-label="View Schedule"
-          >
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewSchedule();
+          }}
+          className="relative group/arrow w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-b from-cyan-500/20 via-white/[0.06] to-indigo-500/15 hover:from-cyan-500/30 hover:via-white/[0.12] hover:to-indigo-500/25 border border-cyan-400/35 hover:border-cyan-300/60 backdrop-blur-xl shadow-[0_0_15px_rgba(6,182,212,0.25),inset_0_1px_1.5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_22px_rgba(6,182,212,0.45),inset_0_1px_2px_rgba(255,255,255,0.4)] active:scale-90 transition-all duration-200 flex items-center justify-center shrink-0 cursor-pointer overflow-hidden"
+          title="View Schedule"
+          aria-label="View Schedule"
+        >
+          {/* Subtle top rim light sheen */}
+          <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-300/70 to-transparent pointer-events-none" />
+
+          {/* Luminous Arrow Icon with Glow and Hover Nudge */}
+          <ArrowRight className="w-4 h-4 text-cyan-300 stroke-[2.4] drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] group-hover:translate-x-0.5 group-hover:text-white group-hover:drop-shadow-[0_0_12px_rgba(34,211,238,1)] transition-all duration-300" />
+        </button>
       </div>
     </div>
   );

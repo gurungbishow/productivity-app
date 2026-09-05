@@ -250,7 +250,7 @@ export function CurrentTaskCard() {
         {/* Grouped Mode Selector & Session Progress (Zero y-gap) */}
         <div className="space-y-1">
           {/* Mode Selector Tabs (Smooth cross-fading active overlays) */}
-          <div className="grid grid-cols-3 p-1 rounded-xl bg-black/60 border border-white/[0.08] shadow-inner backdrop-blur-md gap-1">
+          <div className="grid grid-cols-3 p-[3px] rounded-xl bg-black/60 border border-white/[0.08] shadow-inner backdrop-blur-md gap-1">
             {[
               { id: 'work' as const, label: `Focus (${pomodoroSettings.workMinutes}m)`, border: 'from-indigo-500 via-purple-500 to-pink-500', shadow: 'shadow-[0_0_16px_rgba(99,102,241,0.35)]', bg: 'from-indigo-600 via-indigo-500 to-purple-600' },
               { id: 'short_break' as const, label: `Break (${pomodoroSettings.shortBreakMinutes}m)`, border: 'from-emerald-400 via-teal-400 to-cyan-400', shadow: 'shadow-[0_0_16px_rgba(52,211,153,0.35)]', bg: 'from-emerald-600 to-teal-600' },
@@ -261,7 +261,7 @@ export function CurrentTaskCard() {
                 <button
                   key={modeItem.id}
                   onClick={() => changeMode(modeItem.id)}
-                  className="relative h-8 rounded-lg p-[1.5px] select-none active:scale-95 transition-transform duration-150 cursor-pointer overflow-hidden"
+                  className="relative h-[29px] rounded-lg p-[1.25px] select-none active:scale-95 transition-transform duration-150 cursor-pointer overflow-hidden"
                 >
                   {/* Active Glowing Border & Gradient Background Overlay */}
                   <div
@@ -272,7 +272,7 @@ export function CurrentTaskCard() {
 
                   {/* Inner button container */}
                   <div
-                    className={`relative z-10 w-full h-full px-1 rounded-[7px] text-[11px] font-bold transition-colors duration-200 flex items-center justify-center ${
+                    className={`relative z-10 w-full h-full px-1 rounded-[6.5px] text-[11px] font-bold transition-colors duration-200 flex items-center justify-center ${
                       isModeActive
                         ? 'text-white shadow-inner'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
@@ -280,7 +280,7 @@ export function CurrentTaskCard() {
                   >
                     {/* Active fill sheen */}
                     <div
-                      className={`absolute inset-0 rounded-[7px] bg-gradient-to-r ${modeItem.bg} transition-opacity duration-200 pointer-events-none -z-10 ${
+                      className={`absolute inset-0 rounded-[6.5px] bg-gradient-to-r ${modeItem.bg} transition-opacity duration-200 pointer-events-none -z-10 ${
                         isModeActive ? 'opacity-90' : 'opacity-0'
                       }`}
                     />

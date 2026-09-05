@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Lock, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
+import { Lock, Eye, EyeOff, Loader2, CheckCircle2, KeyRound } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 
 export function UpdatePasswordScreen() {
@@ -54,6 +54,13 @@ export function UpdatePasswordScreen() {
 
           <div className="p-6 sm:p-8">
             <div className="text-center mb-8">
+              {/* Top Icon Badge */}
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center border bg-cyan-500/15 border-cyan-400/30 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.25)]">
+                  <KeyRound className="w-6 h-6 stroke-[2.2]" />
+                </div>
+              </div>
+
               <h2 className="text-[28px] font-black text-white tracking-tight leading-tight">
                 Update Password
               </h2>
@@ -133,6 +140,13 @@ export function UpdatePasswordScreen() {
             )}
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-5 text-center relative z-10">
+          <p className="text-xs text-slate-500 font-medium tracking-wider">
+            My Daily Routine @ 2026
+          </p>
+        </footer>
       </div>
     </div>
   );
