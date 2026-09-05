@@ -170,35 +170,36 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
           </div>
         </div>
 
-        {/* Right: Cloud Status Pill & Reserved Timer Badge slot */}
-        <div className="shrink-0 flex flex-col items-end justify-center gap-1">
+        {/* Right: Cloud Status Pill & Reserved Timer Badge slot with locked height to prevent any layout shift */}
+        <div className="shrink-0 flex flex-col items-end justify-center gap-1 h-[38px]">
           <button
             type="button"
             onClick={() => syncNow()}
             title={cloudBadge.title}
-            className={`flex items-center px-2.5 py-0.5 rounded-full ${cloudBadge.badgeBg} border text-[10px] uppercase tracking-wider font-black active:scale-95 transition-all cursor-pointer`}
+            className={`h-[18px] flex items-center px-2 py-0 rounded-full ${cloudBadge.badgeBg} border text-[9.5px] uppercase tracking-wider font-extrabold active:scale-95 transition-all cursor-pointer leading-none`}
           >
-            <span className={`bg-gradient-to-r ${cloudBadge.textGradient} bg-clip-text text-transparent font-black`}>
+            <span className={`bg-gradient-to-r ${cloudBadge.textGradient} bg-clip-text text-transparent font-black leading-none`}>
               {cloudBadge.text}
             </span>
           </button>
 
-          <div className="min-h-[20px] flex items-center justify-end">
+          {/* Reserved slot with fixed height so appearing/disappearing timer never pushes layout */}
+          <div className="h-[17px] flex items-center justify-end">
             {showTimerBadge && (
               <button
                 onClick={onTimerClick}
-                className={`animate-in fade-in duration-200 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border shadow-md active:scale-95 transition-all ${timerState.mode === 'work'
-                  ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
+                className={`h-[17px] animate-in fade-in duration-200 flex items-center gap-1 px-2 py-0 rounded-full border shadow-sm active:scale-95 transition-all leading-none ${timerState.mode === 'work'
+                  ? 'bg-indigo-500/20 border-indigo-500/35 text-indigo-200 shadow-[0_0_10px_rgba(99,102,241,0.2)]'
                   : timerState.mode === 'short_break'
-                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                    : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                    ? 'bg-emerald-500/20 border-emerald-500/35 text-emerald-200 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                    : 'bg-cyan-500/20 border-cyan-500/35 text-cyan-200 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
                   }`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${timerState.status === 'running'
+                <span className={`w-1 h-1 rounded-full shrink-0 ${timerState.status === 'running'
                   ? timerState.mode === 'work' ? 'bg-indigo-400 animate-pulse' : timerState.mode === 'short_break' ? 'bg-emerald-400 animate-pulse' : 'bg-cyan-400 animate-pulse'
                   : 'bg-slate-400'
                   }`} />
-                <span className="text-[11px] font-black font-mono tracking-wider">
+                <span className="text-[9.5px] font-extrabold font-mono tracking-tight leading-none">
                   {badgeTime}
                 </span>
               </button>
