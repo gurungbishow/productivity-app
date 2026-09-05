@@ -12,7 +12,8 @@ export function UpdatePasswordScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   
-  const { clearRecovery } = useAuth();
+  const { clearRecovery, recoveryError } = useAuth();
+  const displayError = error || recoveryError;
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,9 +115,9 @@ export function UpdatePasswordScreen() {
                   </div>
                 </div>
 
-                {error && (
+                {displayError && (
                   <div className="p-3 mt-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium animate-in slide-in-from-top-2">
-                    {error}
+                    {displayError}
                   </div>
                 )}
 
@@ -136,17 +137,27 @@ export function UpdatePasswordScreen() {
                     </button>
                   </div>
                 </div>
+
+                <div className="mt-5 text-center">
+                  <button
+                    type="button"
+                    onClick={clearRecovery}
+                    className="text-xs text-slate-400 hover:text-cyan-300 font-medium transition-colors cursor-pointer"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
               </form>
             )}
+
+            {/* Form Footer */}
+            <div className="mt-6 pt-4 border-t border-white/[0.06] text-center">
+              <p className="text-xs text-slate-500 font-medium tracking-wider">
+                My Daily Routine @ 2026
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className="mt-5 text-center relative z-10">
-          <p className="text-xs text-slate-500 font-medium tracking-wider">
-            My Daily Routine @ 2026
-          </p>
-        </footer>
       </div>
     </div>
   );

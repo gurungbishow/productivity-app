@@ -32,7 +32,7 @@ export function LoginScreen() {
     try {
       if (isForgotPassword) {
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/#update-password` : undefined,
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}` : undefined,
         });
         if (resetError) throw resetError;
         setSuccess('Check your email for the password reset link.');
@@ -265,15 +265,14 @@ export function LoginScreen() {
               </p>
             )}
           </div>
+
+          <div className="mt-6 pt-4 border-t border-white/[0.06] text-center">
+            <p className="text-xs text-slate-500 font-medium tracking-wider">
+              My Daily Routine @ 2026
+            </p>
+          </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <footer className="mt-5 text-center relative z-10">
-          <p className="text-xs text-slate-500 font-medium tracking-wider">
-            My Daily Routine @ 2026
-          </p>
-        </footer>
       </div>
     </div>
   );
