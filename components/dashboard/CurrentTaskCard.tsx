@@ -178,38 +178,46 @@ export function CurrentTaskCard() {
       <div className={`absolute -inset-1.5 rounded-[27px] bg-gradient-to-b ${theme.ambientAura} blur-xl pointer-events-none -z-10 opacity-70 transition-all duration-700`} />
 
       <div className="relative overflow-hidden rounded-[23.5px] bg-gradient-to-b from-[#131B30]/98 via-[#0D1322]/98 to-[#080B14]/98 p-4 backdrop-blur-2xl shadow-inner space-y-3">
-        {/* Subtle top ambient sheen */}
-        <div className={`absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent ${theme.topSheen} to-transparent pointer-events-none`} />
-
         {/* Ambient background glowing sphere adapted to current mode */}
         <div className={`absolute -top-12 -right-12 w-56 h-56 bg-gradient-to-b ${theme.ambientGlow} rounded-full blur-3xl pointer-events-none transition-all duration-700 opacity-60`} />
 
       {/* TOP HEADER: Current Slot Identity & Schedule */}
       <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
         <div className="flex items-center gap-2 min-w-0">
-          {/* Animated Circulating Border Badge for Current Slot */}
-          <div className="relative p-[1.25px] rounded-full overflow-hidden shrink-0 shadow-sm bg-white/[0.08]">
-            {/* Diffused outer glow */}
-            <div 
-              className="absolute -inset-[150%] animate-border-beam opacity-80 blur-[2px]"
-              style={{
-                background: `conic-gradient(from 0deg, transparent 0deg, transparent 260deg, ${theme.beamFrom} 290deg, ${theme.beamVia} 325deg, ${theme.beamTo} 348deg, ${theme.beamHead} 356deg, transparent 360deg)`
-              }}
-            />
-            {/* Crisp rotating beam */}
-            <div 
-              className="absolute -inset-[150%] animate-border-beam opacity-100"
-              style={{
-                background: `conic-gradient(from 0deg, transparent 0deg, transparent 260deg, ${theme.beamFrom} 290deg, ${theme.beamVia} 325deg, ${theme.beamTo} 348deg, ${theme.beamHead} 356deg, transparent 360deg)`
-              }}
-            />
-            {/* Inner Pill Container */}
-            <div className={`relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full ${theme.badgeBg} text-[10.5px] font-bold uppercase tracking-wider backdrop-blur-md transition-colors duration-500`}>
-              <span className="relative flex h-2 w-2">
+          {/* Animated Circulating Rainbow Border Badge for Current Slot */}
+          <div className="relative shrink-0">
+            {/* Soft ambient chromatic aura glow behind Current Slot badge */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-rose-500/35 via-indigo-500/30 to-cyan-500/35 blur-sm pointer-events-none opacity-80" />
+
+            <div className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded-full ${theme.badgeBg} text-[10.5px] font-bold uppercase tracking-wider backdrop-blur-md transition-colors duration-500 shadow-sm overflow-hidden`}>
+              {/* Crisp rotating rainbow border beam synchronized with TimelineList */}
+              <div 
+                className="absolute inset-0 rounded-full pointer-events-none overflow-hidden"
+                style={{
+                  padding: '1.25px',
+                  mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                  maskComposite: 'exclude',
+                  WebkitMaskComposite: 'xor',
+                }}
+              >
+                {/* Subtle iridescent glass border track */}
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-500/20 via-indigo-500/20 via-cyan-500/20 to-emerald-500/20" />
+
+                <div 
+                  className="absolute -inset-[150%] animate-border-beam"
+                  style={{
+                    background: 'conic-gradient(from 0deg, transparent 0deg, transparent 140deg, rgba(0, 245, 255, 0.05) 155deg, #00F5FF 185deg, #3B82F6 215deg, #6366F1 240deg, #A855F7 265deg, #EC4899 290deg, #F43F5E 312deg, #FF6B00 332deg, #FACC15 348deg, #FFFFFF 356deg, #FFFFFF 359deg, transparent 360deg)',
+                    animationDuration: '10s',
+                  }}
+                />
+              </div>
+
+              <span className="relative flex h-2 w-2 z-10">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${theme.badgePing} opacity-75`} />
                 <span className={`relative inline-flex rounded-full h-2 w-2 ${theme.badgeDot}`} />
               </span>
-              <span className={theme.badgeText}>Current Slot</span>
+              <span className={`relative z-10 ${theme.badgeText}`}>Current Slot</span>
             </div>
           </div>
         </div>

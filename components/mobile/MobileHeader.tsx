@@ -146,12 +146,12 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
   const badgeTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#070A12]/80 backdrop-blur-2xl border-b border-white/[0.08] px-4 py-2 sm:py-2.5 shadow-[0_4px_30px_rgba(0,0,0,0.6)] relative space-y-1.5">
+    <header className="sticky top-0 z-40 w-full bg-[#070A12]/80 backdrop-blur-2xl border-b border-white/[0.08] px-4 py-2 shadow-[0_4px_30px_rgba(0,0,0,0.6)] relative space-y-1">
       {/* Subtle top ambient sheen */}
       <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/40 via-indigo-500/40 to-transparent pointer-events-none" />
 
       {/* Top Row: Left (Greeting with Avatar emblem) & Right (Cloud Status) */}
-      <div className="flex items-center justify-between gap-2.5 h-[50px]">
+      <div className="flex items-center justify-between gap-2.5">
         {/* Left: Emblem + Greeting with Vibrant Gradient */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr ${iconTheme.ring} p-[1px] ${iconTheme.glow} shrink-0 transition-all duration-300`}>
@@ -166,12 +166,12 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
                 {greeting}, {userName}!
               </span>
             </h1>
-            <p className="text-[10.5px] font-semibold text-slate-400">Stay consistent & make it count.</p>
+            <p className="text-[10.5px] font-semibold text-slate-400 leading-tight">Stay consistent & make it count.</p>
           </div>
         </div>
 
-        {/* Right: Cloud Status Pill (pinned to top) & Reserved Timer Badge slot below */}
-        <div className="shrink-0 flex flex-col items-end justify-between h-[46px]">
+        {/* Right: Cloud Status Pill & Reserved Timer Badge slot */}
+        <div className="shrink-0 flex flex-col items-end justify-center gap-1">
           <button
             type="button"
             onClick={() => syncNow()}
@@ -183,7 +183,7 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
             </span>
           </button>
 
-          <div className="h-[21px] flex items-center justify-end">
+          <div className="min-h-[20px] flex items-center justify-end">
             {showTimerBadge && (
               <button
                 onClick={onTimerClick}
@@ -208,7 +208,7 @@ export function MobileHeader({ onTimerClick }: { onTimerClick?: () => void }) {
       </div>
 
       {/* Bottom Stack: Centered Date & Time */}
-      <div className="flex flex-col items-center justify-center space-y-0">
+      <div className="flex flex-col items-center justify-center space-y-0 -mt-0.5">
         <div className="flex items-center gap-2 text-[12px] font-black tracking-tight text-white">
           <span className="text-white">{dayName}</span>
           <span className="text-white/30">|</span>

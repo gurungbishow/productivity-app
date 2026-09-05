@@ -196,7 +196,8 @@ export function getSlotElapsedMinutes(item: ScheduleItem, currentMinutes: number
 }
 
 export function getScheduleStatus(items: ScheduleItem[] = DEFAULT_SCHEDULE, date: Date = new Date()): ScheduleStatus {
-  const sortedItems = sortScheduleAscending(items);
+  const activeItems = items.filter(item => item.isActive !== false);
+  const sortedItems = sortScheduleAscending(activeItems);
   const currentMinutes = date.getHours() * 60 + date.getMinutes();
   const currentSeconds = date.getSeconds();
   const currentTotalFraction = currentMinutes + currentSeconds / 60;

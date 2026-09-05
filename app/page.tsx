@@ -7,6 +7,7 @@ import { MobileBottomNav } from '@/components/mobile/MobileBottomNav';
 import { CurrentTaskCard } from '@/components/dashboard/CurrentTaskCard';
 import { UpNextCard } from '@/components/dashboard/UpNextCard';
 import { ShayariWidget } from '@/components/dashboard/ShayariWidget';
+import { DailyAnalyticsAccordion } from '@/components/dashboard/DailyAnalyticsAccordion';
 import { TimelineList } from '@/components/schedule/TimelineList';
 import { SettingsView } from '@/components/settings/SettingsView';
 import { useAuth } from '@/lib/authContext';
@@ -54,6 +55,9 @@ function MobileAppContent() {
 
               {/* Daily Motivational Shayari */}
               <ShayariWidget />
+
+              {/* Daily Progress Analytics Accordion */}
+              <DailyAnalyticsAccordion />
             </div>
           )}
 

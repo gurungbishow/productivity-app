@@ -29,6 +29,8 @@ interface AppContextType {
   toggleTaskCompleted: (id: string) => boolean; // returns new completed status
   addScheduleItem: (item: { title: string; startTime: string; endTime: string; category?: ScheduleItem['category']; description?: string }) => void;
   updateScheduleItem: (id: string, updates: Partial<ScheduleItem>) => void;
+  toggleScheduleItemActive: (id: string) => void;
+  resumeAllScheduleItems: () => void;
   deleteScheduleItem: (id: string) => void;
   resetScheduleToDefault: () => void;
   clearSchedule: () => void;
@@ -785,6 +787,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const toggleScheduleItemActive = useCallback((id: string) => {
+    setSchedule((prev) => {
+      const updated = prev.map((item) => {
+        if (item.id !== id) return item;
+        const isCurrentlyActive = item.isActive !== false;
+        return { ...item, isActive: !isCurrentlyActive };
+      });
+      return sortScheduleAscending(updated);
+    });
+  }, []);
+
+  const resumeAllScheduleItems = useCallback(() => {
+    setSchedule((prev) => {
+      const updated = prev.map((item) => {
+        if (item.isActive === false) {
+          return { ...item, isActive: true };
+        }
+        return item;
+      });
+      return sortScheduleAscending(updated);
+    });
+  }, []);
+
   const deleteScheduleItem = useCallback((id: string) => {
     setSchedule((prev) => prev.filter((i) => i.id !== id));
     setCompletedTaskIds((prev) => prev.filter((i) => i !== id));
@@ -1199,6 +1224,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleTaskCompleted,
         addScheduleItem,
         updateScheduleItem,
+        toggleScheduleItemActive,
+        resumeAllScheduleItems,
         deleteScheduleItem,
         resetScheduleToDefault,
         clearSchedule,

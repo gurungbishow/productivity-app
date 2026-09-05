@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppStore } from '@/lib/store';
 import { isSlotActive, getSlotDurationMinutes, sortScheduleAscending } from '@/lib/scheduleEngine';
 import { ScheduleItem } from '@/lib/types';
@@ -19,7 +20,10 @@ import {
   ChevronDown,
   Check,
   Save,
-  Folder
+  Folder,
+  PauseCircle,
+  Play,
+  AlertTriangle
 } from 'lucide-react';
 
 function parseTimeString(timeStr: string): { hour: number; minute: string; period: 'AM' | 'PM' } {
@@ -44,6 +48,8 @@ export function TimelineList() {
     toggleTaskCompleted,
     addScheduleItem,
     updateScheduleItem,
+    toggleScheduleItemActive,
+    resumeAllScheduleItems,
     deleteScheduleItem,
     userDefaultSchedule,
     saveAsUserDefault,
@@ -54,12 +60,28 @@ export function TimelineList() {
     return sortScheduleAscending(schedule);
   }, [schedule]);
 
+  const activeSchedule = React.useMemo(() => {
+    return sortedSchedule.filter((item) => item.isActive !== false);
+  }, [sortedSchedule]);
+
+  const inactiveSchedule = React.useMemo(() => {
+    return sortedSchedule.filter((item) => item.isActive === false);
+  }, [sortedSchedule]);
+
+  const [isPausedSectionOpen, setIsPausedSectionOpen] = useState(false);
+
   const [currentMinutes, setCurrentMinutes] = useState(
     () => new Date().getHours() * 60 + new Date().getMinutes()
   );
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<ScheduleItem | null>(null);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const [formTitle, setFormTitle] = useState('');
   const [formStartTime, setFormStartTime] = useState('09:00 AM');
@@ -173,8 +195,13 @@ export function TimelineList() {
     }
   };
 
-  const completionPercentage = schedule.length > 0 
-    ? Math.round((completedTaskIds.length / schedule.length) * 100) 
+  const activeCompletedTaskIds = React.useMemo(() => {
+    const activeIds = new Set(activeSchedule.map((i) => i.id));
+    return completedTaskIds.filter((id) => activeIds.has(id));
+  }, [activeSchedule, completedTaskIds]);
+
+  const completionPercentage = activeSchedule.length > 0 
+    ? Math.round((activeCompletedTaskIds.length / activeSchedule.length) * 100) 
     : 0;
 
   return (
@@ -194,12 +221,18 @@ export function TimelineList() {
                 Daily Routine
               </h2>
               <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 flex items-center gap-1 sm:gap-1.5 -mt-0.5 truncate">
-                <span className="text-indigo-300 font-extrabold">{completedTaskIds.length}</span>
+                <span className="text-indigo-300 font-extrabold">{activeCompletedTaskIds.length}</span>
                 <span>of</span>
-                <span className="text-slate-300 font-extrabold">{schedule.length}</span>
+                <span className="text-slate-300 font-extrabold">{activeSchedule.length}</span>
                 <span className="hidden sm:inline">completed</span>
                 <span className="text-white/20 hidden sm:inline">·</span>
                 <span className="text-emerald-400 font-mono font-bold">{completionPercentage}%</span>
+                {inactiveSchedule.length > 0 && (
+                  <>
+                    <span className="text-white/20">·</span>
+                    <span className="text-amber-400 font-bold">{inactiveSchedule.length} paused</span>
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -272,7 +305,29 @@ export function TimelineList() {
 
       {/* Routine Cards List (Compact & Mobile-Optimized with Safe Bottom Padding) */}
       <div className="space-y-2.5 pb-20">
-        {sortedSchedule.map((item) => {
+        {/* Banner when all routines are currently paused */}
+        {schedule.length > 0 && activeSchedule.length === 0 && (
+          <div className="p-6 rounded-3xl border border-amber-500/25 bg-gradient-to-br from-[#18151f]/90 via-[#120f1a]/90 to-[#0c0a12]/95 backdrop-blur-2xl text-center space-y-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-300 mx-auto">
+              <PauseCircle className="w-5 h-5" />
+            </div>
+            <h3 className="text-sm font-bold text-white">All routine slots are paused</h3>
+            <p className="text-xs text-slate-400 max-w-xs mx-auto">
+              You have {inactiveSchedule.length} paused slot{inactiveSchedule.length > 1 ? 's' : ''}. You can resume them anytime below.
+            </p>
+            <div className="pt-1 flex justify-center">
+              <button
+                onClick={resumeAllScheduleItems}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-400/35 text-xs font-bold transition-all active:scale-95 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+              >
+                <Play className="w-3 h-3 fill-current" />
+                <span>Resume All Slots</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeSchedule.map((item) => {
           const active = isSlotActive(item, currentMinutes);
           const isCompleted = completedTaskIds.includes(item.id);
           const duration = getSlotDurationMinutes(item);
@@ -287,36 +342,15 @@ export function TimelineList() {
                 isMenuOpen ? 'z-30' : 'z-10'
               } ${
                 active
-                  ? 'border border-emerald-500/30 bg-gradient-to-br from-[#0c1322]/98 via-[#080d18]/98 to-[#050810]/98 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_25px_rgba(16,185,129,0.15)]'
+                  ? 'bg-gradient-to-br from-[#0c1322]/98 via-[#080d18]/98 to-[#050810]/98 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_25px_rgba(16,185,129,0.15)]'
                   : isCompleted
                   ? 'border border-emerald-500/20 bg-gradient-to-br from-[#090D15]/60 via-[#070A10]/70 to-[#05070C]/80 opacity-70 backdrop-blur-md'
                   : `border border-white/[0.08] bg-gradient-to-br from-[#121829]/90 via-[#0C111F]/92 to-[#080D18]/95 ${categoryMeta.accentBorder} shadow-[0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20`
               }`}
             >
-              {/* Rotating Circular Border Beam around Active Container */}
+              {/* Single Crisp Rainbow Rotating Border Beam around Active Container */}
               {active && (
                 <>
-                  {/* Subtle outer neon aura glow traveling with beam */}
-                  <div 
-                    className="absolute -inset-[2px] rounded-2xl pointer-events-none overflow-hidden -z-10 blur-[3px] opacity-70"
-                    style={{
-                      padding: '2px',
-                      mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                      WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                      maskComposite: 'exclude',
-                      WebkitMaskComposite: 'xor',
-                    }}
-                  >
-                    <div
-                      className="absolute -inset-[150%] animate-border-beam"
-                      style={{
-                        background: 'conic-gradient(from 0deg, transparent 0deg, transparent 260deg, rgba(16, 185, 129, 0.2) 290deg, #34D399 325deg, #2DD4BF 348deg, #FFFFFF 356deg, transparent 360deg)',
-                        animationDuration: '22s',
-                      }}
-                    />
-                  </div>
-
-                  {/* Crisp 1.5px rotating circular border beam */}
                   <div 
                     className="absolute inset-0 rounded-2xl pointer-events-none overflow-hidden z-0"
                     style={{
@@ -327,17 +361,20 @@ export function TimelineList() {
                       WebkitMaskComposite: 'xor',
                     }}
                   >
+                    {/* Subtle iridescent glass border track */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-rose-500/20 via-indigo-500/20 via-cyan-500/20 to-emerald-500/20" />
+
                     <div
                       className="absolute -inset-[150%] animate-border-beam"
                       style={{
-                        background: 'conic-gradient(from 0deg, transparent 0deg, transparent 260deg, rgba(16, 185, 129, 0.2) 290deg, #34D399 325deg, #2DD4BF 348deg, #FFFFFF 356deg, transparent 360deg)',
-                        animationDuration: '22s',
+                        background: 'conic-gradient(from 0deg, transparent 0deg, transparent 140deg, rgba(0, 245, 255, 0.05) 155deg, #00F5FF 185deg, #3B82F6 215deg, #6366F1 240deg, #A855F7 265deg, #EC4899 290deg, #F43F5E 312deg, #FF6B00 332deg, #FACC15 348deg, #FFFFFF 356deg, #FFFFFF 359deg, transparent 360deg)',
+                        animationDuration: '10s',
                       }}
                     />
                   </div>
 
-                  {/* Active ambient aura glow */}
-                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-cyan-500/15 blur-lg pointer-events-none -z-10 opacity-70" />
+                  {/* Soft ambient chromatic aura blur behind active card */}
+                  <div className="absolute -inset-2 rounded-2xl bg-gradient-to-r from-rose-500/20 via-purple-500/20 via-cyan-500/20 to-emerald-500/20 blur-xl pointer-events-none -z-10 opacity-70" />
                 </>
               )}
 
@@ -433,7 +470,7 @@ export function TimelineList() {
 
                   {/* Dropdown Action Popover */}
                   {isMenuOpen && (
-                    <div className="absolute right-0 top-full mt-1.5 z-30 min-w-[130px] rounded-2xl bg-[#0F1526]/98 backdrop-blur-2xl border border-white/[0.14] p-1.5 shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_20px_rgba(99,102,241,0.25)] space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="absolute right-0 top-full mt-1.5 z-30 min-w-[130px] rounded-2xl bg-[#0B101E]/90 backdrop-blur-2xl border border-white/[0.18] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] space-y-1 animate-in fade-in zoom-in-95 duration-150">
                       {/* Edit Option */}
                       <button
                         onClick={() => {
@@ -446,6 +483,18 @@ export function TimelineList() {
                         <span>Edit</span>
                       </button>
 
+                      {/* Pause Routine Option */}
+                      <button
+                        onClick={() => {
+                          setOpenMenuId(null);
+                          toggleScheduleItemActive(item.id);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 hover:text-amber-200 hover:bg-amber-500/20 active:scale-95 transition-all text-left group"
+                      >
+                        <PauseCircle className="w-3.5 h-3.5 text-amber-400 group-hover:text-amber-300 transition-colors" />
+                        <span>Pause Slot</span>
+                      </button>
+
                       {/* Subtle Glassmorphic Separator */}
                       <div className="h-[1px] mx-1 bg-white/[0.08]" />
 
@@ -453,7 +502,7 @@ export function TimelineList() {
                       <button
                         onClick={() => {
                           setOpenMenuId(null);
-                          deleteScheduleItem(item.id);
+                          setItemToDelete(item);
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 active:scale-95 transition-all text-left group"
                       >
@@ -468,11 +517,156 @@ export function TimelineList() {
             </div>
           );
         })}
+
+        {/* Collapsible Paused Routines Tray */}
+        {inactiveSchedule.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-dashed border-amber-500/30 bg-gradient-to-br from-[#121624]/90 via-[#0E121E]/90 to-[#0A0D15]/95 backdrop-blur-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] overflow-hidden transition-all">
+            {/* Tray Header (Accordion Toggle) */}
+            <div
+              onClick={() => setIsPausedSectionOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between p-3 sm:p-3.5 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <PauseCircle className="w-4 h-4" />
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs sm:text-[13px] font-black text-slate-200 tracking-tight">
+                    Paused Routines
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[10px] font-mono font-bold">
+                    {inactiveSchedule.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resumeAllScheduleItems();
+                  }}
+                  className="flex items-center gap-1 py-1 px-2.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 text-emerald-300 text-[10.5px] font-bold active:scale-95 transition-all"
+                  title="Resume all paused routines"
+                >
+                  <Play className="w-2.5 h-2.5 fill-current" />
+                  <span>Resume All</span>
+                </button>
+
+                <div className={`text-slate-400 p-0.5 transition-transform duration-200 ${isPausedSectionOpen ? 'rotate-180 text-amber-300' : ''}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            {/* Expanded Paused Items List */}
+            {isPausedSectionOpen && (
+              <div className="px-3 pb-3 sm:px-3.5 sm:pb-3.5 space-y-2 border-t border-white/[0.06] pt-2.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                {inactiveSchedule.map((item) => {
+                  const duration = getSlotDurationMinutes(item);
+                  const isMenuOpen = openMenuId === item.id;
+                  const categoryMeta = getCategoryConfig(item.category);
+                  const CategoryIcon = categoryMeta.icon;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`relative rounded-xl p-2.5 sm:p-3 border border-white/[0.08] bg-[#0A0D18]/80 backdrop-blur-md transition-all ${
+                        isMenuOpen ? 'z-30' : 'z-10'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2.5">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs sm:text-[13px] font-bold text-slate-300 truncate">
+                              {item.title}
+                            </h4>
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md border border-white/[0.08] bg-white/[0.03] text-[9px] font-bold text-slate-400">
+                              <CategoryIcon className="w-2.5 h-2.5 stroke-[2]" />
+                              <span>{categoryMeta.label}</span>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] text-slate-400 font-mono font-semibold text-[10px]">
+                              <Clock className="w-2.5 h-2.5 text-slate-400" />
+                              <span>{item.startTime} – {item.endTime}</span>
+                            </span>
+                            <span className="text-[9.5px] font-mono text-slate-500">
+                              ({formatDuration(duration)})
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right: 1-Tap Quick Resume Button + 3-Dot Menu */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => toggleScheduleItemActive(item.id)}
+                            className="flex items-center gap-1 py-1.5 px-2.5 sm:px-3 rounded-xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:from-emerald-500/30 hover:to-teal-500/30 border border-emerald-400/40 text-emerald-300 text-[11px] font-black active:scale-95 transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+                            title="Resume this routine"
+                          >
+                            <Play className="w-2.5 h-2.5 fill-current" />
+                            <span>Resume</span>
+                          </button>
+
+                          <div data-routine-menu className="relative">
+                            <button
+                              onClick={() => setOpenMenuId(isMenuOpen ? null : item.id)}
+                              className={`w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-all ${
+                                isMenuOpen ? 'text-indigo-300' : 'text-slate-400 hover:text-white'
+                              }`}
+                              title="Options"
+                              aria-label="Options"
+                            >
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+
+                            {isMenuOpen && (
+                              <div className="absolute right-0 top-full mt-1 z-30 min-w-[130px] rounded-2xl bg-[#0B101E]/90 backdrop-blur-2xl border border-white/[0.18] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    handleOpenEdit(item);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-indigo-500/20 active:scale-95 transition-all text-left"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5 text-indigo-400" />
+                                  <span>Edit</span>
+                                </button>
+                                <div className="h-[1px] mx-1 bg-white/[0.08]" />
+                                <button
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    setItemToDelete(item);
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 active:scale-95 transition-all text-left"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Add / Edit Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200">
+      {/* Add / Edit Modal (Portaled to document.body) */}
+      {mounted && showAddModal && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddModal(false);
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200"
+        >
           <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.14] bg-gradient-to-b from-[#141C32]/95 via-[#0E1526]/95 to-[#080B14]/98 backdrop-blur-3xl p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_35px_rgba(99,102,241,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)] space-y-4 animate-in zoom-in-95 duration-200">
             
             {/* Top Aurora Sheen Line */}
@@ -517,7 +711,7 @@ export function TimelineList() {
                   placeholder="e.g. AI / ML, College, Reading"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full rounded-xl bg-[#080C18]/90 border border-white/[0.14] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/25 px-3.5 py-2.5 text-xs font-bold text-white placeholder:text-slate-500 shadow-inner transition-all outline-none"
+                  className="w-full rounded-xl bg-white/[0.05] border border-white/[0.14] focus:bg-white/[0.08] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/25 px-3.5 py-2.5 text-xs font-bold text-white placeholder:text-slate-500 shadow-inner backdrop-blur-xl transition-all outline-none"
                 />
               </div>
 
@@ -564,7 +758,7 @@ export function TimelineList() {
                       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all active:scale-95 ${
                         activeTimePicker === 'start'
                           ? 'bg-cyan-500/15 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-                          : 'bg-[#080C18]/90 border-white/[0.14] hover:border-cyan-400/50 text-white'
+                          : 'bg-white/[0.05] border-white/[0.14] hover:bg-white/[0.08] hover:border-cyan-400/50 text-white backdrop-blur-xl'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -588,7 +782,7 @@ export function TimelineList() {
                       className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all active:scale-95 ${
                         activeTimePicker === 'end'
                           ? 'bg-indigo-500/15 border-indigo-400 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                          : 'bg-[#080C18]/90 border-white/[0.14] hover:border-indigo-400/50 text-white'
+                          : 'bg-white/[0.05] border-white/[0.14] hover:bg-white/[0.08] hover:border-indigo-400/50 text-white backdrop-blur-xl'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -711,37 +905,165 @@ export function TimelineList() {
                   placeholder="e.g. Deep focus, drink water, review concepts..."
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
-                  className="w-full rounded-xl bg-[#080C18]/90 border border-white/[0.14] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/25 px-3.5 py-2.5 text-xs font-medium text-white placeholder:text-slate-500 shadow-inner resize-none transition-all outline-none"
+                  className="w-full rounded-xl bg-white/[0.05] border border-white/[0.14] focus:bg-white/[0.08] focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/25 px-3.5 py-2.5 text-xs font-medium text-white placeholder:text-slate-500 shadow-inner resize-none backdrop-blur-xl transition-all outline-none"
                 />
               </div>
 
               {/* Action Buttons with Aligned Colorful Borders */}
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                {/* Cancel Button with Matching Border */}
-                <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-slate-500/60 via-slate-400/50 to-slate-600/50 shadow-sm">
+              <div className="flex items-center justify-between gap-2.5 pt-2">
+                {editingItem ? (
                   <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 rounded-[10px] bg-[#0E1424] hover:bg-[#151D30] text-slate-200 hover:text-white text-xs font-bold active:scale-95 transition-all"
+                    onClick={() => {
+                      setItemToDelete(editingItem);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-rose-500/[0.12] hover:bg-rose-500/[0.22] backdrop-blur-xl text-rose-300 hover:text-rose-200 border border-rose-400/35 text-xs font-bold active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.18),inset_0_1px_1px_rgba(255,255,255,0.22)]"
                   >
-                    Cancel
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
                   </button>
-                </div>
+                ) : <div />}
 
-                {/* Save Slot Button with Glowing Colorful Gradient Border */}
-                <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-emerald-400 via-cyan-400 to-purple-500 shadow-[0_0_18px_rgba(99,102,241,0.45)]">
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-[10px] bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 active:scale-95 text-white text-xs font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <CheckCheck className="w-3.5 h-3.5 text-white stroke-[2.5]" />
-                    <span>{editingItem ? 'Update Slot' : 'Save Slot'}</span>
-                  </button>
+                <div className="flex items-center gap-2.5">
+                  {/* Cancel Button with Matching Border */}
+                  <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-slate-500/60 via-slate-400/50 to-slate-600/50 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="px-4 py-2 rounded-[10px] bg-white/[0.08] hover:bg-white/[0.16] text-slate-200 hover:text-white backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)] text-xs font-bold active:scale-95 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  {/* Save Slot Button with Glowing Colorful Gradient Border */}
+                  <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-emerald-400 via-cyan-400 to-purple-500 shadow-[0_0_18px_rgba(99,102,241,0.45)]">
+                    <button
+                      type="submit"
+                      className="px-5 py-2 rounded-[10px] bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 active:scale-95 text-white text-xs font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCheck className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                      <span>{editingItem ? 'Update Slot' : 'Save Slot'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete Confirmation Warning Modal (Portaled to document.body) */}
+      {mounted && itemToDelete && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setItemToDelete(null);
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xl animate-in fade-in duration-150"
+        >
+          {/* Glassmorphic Modal Dialog Card with Liquid Frosted Glass Aesthetics */}
+          <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.22] border-t-white/[0.4] bg-gradient-to-br from-white/[0.14] via-[#0E1322]/70 to-[#060913]/80 backdrop-blur-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(244,63,94,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(255,255,255,0.1)] p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            
+            {/* Prismatic Top Rim Light Sheen */}
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-white/90 via-rose-300/80 to-transparent opacity-95 pointer-events-none" />
+
+            {/* Left Edge Vertical Light Reflection */}
+            <div className="absolute top-0 left-0 w-[1.5px] h-32 bg-gradient-to-b from-white/60 to-transparent pointer-events-none" />
+
+            {/* Diagonal Prismatic Glass Reflection Glare */}
+            <div className="absolute -top-24 -left-20 w-48 h-96 bg-gradient-to-br from-white/[0.12] via-white/[0.04] to-transparent rotate-45 pointer-events-none blur-[1px]" />
+
+            {/* Radiant Ambient Diffused Glow Orbs Behind Glass */}
+            <div className="absolute -top-20 -right-16 w-52 h-52 bg-rose-500/25 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -left-16 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Modal Warning Header */}
+            <div className="flex items-start gap-3 relative z-10">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-white/[0.18] to-rose-500/20 border border-white/[0.35] border-t-white/[0.5] backdrop-blur-2xl flex items-center justify-center shadow-[0_8px_20px_rgba(244,63,94,0.35),inset_0_1.5px_2px_rgba(255,255,255,0.6)] shrink-0">
+                <AlertTriangle className="w-5 h-5 text-rose-400 stroke-[2.2]" />
+              </div>
+              <div className="space-y-1 pr-6">
+                <h3 className="text-base font-black text-white tracking-tight leading-tight">
+                  Delete Routine Slot?
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Are you sure you want to permanently remove{' '}
+                  <span className="font-bold text-white bg-white/[0.12] px-1.5 py-0.5 rounded-md border border-white/[0.2] shadow-inner backdrop-blur-sm">
+                    {itemToDelete.title}
+                  </span>{' '}
+                  ({itemToDelete.startTime} - {itemToDelete.endTime})?
+                </p>
+              </div>
+
+              <button
+                onClick={() => setItemToDelete(null)}
+                className="absolute top-0 right-0 w-7 h-7 rounded-xl bg-white/[0.08] hover:bg-white/[0.2] border border-white/[0.22] backdrop-blur-2xl text-slate-300 hover:text-white flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]"
+                aria-label="Close"
+              >
+                <X className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            {/* Glassmorphic Suggestion Notice: Suggest Pausing as a Safe Alternative */}
+            {itemToDelete.isActive !== false && (
+              <div className="p-3 rounded-2xl bg-amber-500/[0.12] backdrop-blur-2xl border border-amber-300/[0.35] border-t-amber-200/50 shadow-[inset_0_1.5px_1px_rgba(255,255,255,0.25),0_4px_15px_rgba(245,158,11,0.15)] flex items-start gap-2.5 text-left relative z-10">
+                <PauseCircle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-200/95 leading-snug">
+                  <strong className="text-amber-300 font-bold">Need a break instead?</strong> You can pause this slot to hide it from today’s active timetable without losing your setup.
+                </p>
+              </div>
+            )}
+
+            {/* Warning Note */}
+            <p className="text-[11px] text-rose-300/90 font-medium relative z-10">
+              ⚠️ This action cannot be undone.
+            </p>
+
+            {/* Frosted Glass Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-1 relative z-10">
+              {itemToDelete.isActive !== false && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleScheduleItemActive(itemToDelete.id);
+                    setItemToDelete(null);
+                    if (showAddModal) setShowAddModal(false);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500/[0.16] hover:bg-amber-500/[0.26] text-amber-200 border border-amber-300/[0.4] backdrop-blur-2xl shadow-[0_0_18px_rgba(245,158,11,0.25),inset_0_1.5px_1px_rgba(255,255,255,0.3)] text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <PauseCircle className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Pause Slot Instead</span>
+                </button>
+              )}
+
+              <div className="flex items-center gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setItemToDelete(null)}
+                  className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.18] text-slate-200 hover:text-white border border-white/[0.22] backdrop-blur-2xl shadow-[0_4px_15px_rgba(0,0,0,0.2),inset_0_1.5px_1px_rgba(255,255,255,0.35)] text-xs font-bold active:scale-95 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    deleteScheduleItem(itemToDelete.id);
+                    setItemToDelete(null);
+                    if (showAddModal) setShowAddModal(false);
+                  }}
+                  className="flex-1 sm:flex-initial px-4.5 py-2 rounded-xl bg-gradient-to-r from-rose-500/90 via-rose-600/90 to-red-600/90 hover:from-rose-500 hover:to-red-500 text-white text-xs font-black shadow-[0_0_25px_rgba(244,63,94,0.55),inset_0_1.5px_2px_rgba(255,255,255,0.5)] border border-rose-300/70 backdrop-blur-2xl active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-white stroke-[2.2]" />
+                  <span>Delete Slot</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>,
+        document.body
       )}
 
     </div>

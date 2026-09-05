@@ -142,7 +142,7 @@ export function LoginScreen() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#0F1629] border border-white/[0.08] text-white text-[15px] rounded-2xl focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 block pl-12 p-3.5 transition-all placeholder:text-slate-500 shadow-inner [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
+                    className="w-full bg-white/[0.05] border border-white/[0.14] text-white text-[15px] rounded-2xl focus:bg-white/[0.08] focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 block pl-12 p-3.5 backdrop-blur-xl transition-all placeholder:text-slate-500 shadow-inner [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
                     placeholder="Bishow"
                     required
                   />
@@ -160,7 +160,7 @@ export function LoginScreen() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#0F1629] border border-white/[0.08] text-white text-[15px] rounded-2xl focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 block pl-12 p-3.5 transition-all placeholder:text-slate-500 shadow-inner [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
+                  className="w-full bg-white/[0.05] border border-white/[0.14] text-white text-[15px] rounded-2xl focus:bg-white/[0.08] focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 block pl-12 p-3.5 backdrop-blur-xl transition-all placeholder:text-slate-500 shadow-inner [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
                   placeholder="you@example.com"
                   required
                 />
@@ -189,7 +189,7 @@ export function LoginScreen() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#0F1629] border border-white/[0.08] text-white text-[15px] rounded-2xl focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 block pl-12 pr-12 p-3.5 transition-all placeholder:text-slate-500 shadow-inner [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
+                    className="w-full bg-white/[0.05] border border-white/[0.14] text-white text-[15px] rounded-2xl focus:bg-white/[0.08] focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 block pl-12 pr-12 p-3.5 backdrop-blur-xl transition-all placeholder:text-slate-500 shadow-inner [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
                     placeholder="••••••••"
                     required
                     minLength={6}
@@ -218,12 +218,12 @@ export function LoginScreen() {
             )}
 
             <div className="pt-5">
-              <div className="p-[1.5px] rounded-[18px] bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 relative group overflow-hidden shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+              <div className="p-[1.5px] rounded-[18px] bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 relative group overflow-hidden shadow-[0_0_25px_rgba(6,182,212,0.25)]">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 opacity-60 blur-lg group-hover:opacity-100 transition-opacity duration-300" />
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="relative w-full py-4 rounded-[16px] bg-[#0E1424] text-white font-bold text-[15px] tracking-wide shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] flex items-center justify-center gap-2 hover:bg-[#141C30] transition-colors disabled:opacity-80"
+                  className="relative w-full py-4 rounded-[16px] bg-[#0E1424]/90 backdrop-blur-xl text-white font-bold text-[15px] tracking-wide shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2 hover:bg-[#141C30]/95 active:scale-[0.99] transition-all disabled:opacity-80 cursor-pointer"
                 >
                   {isLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />

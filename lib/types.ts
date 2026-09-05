@@ -21,6 +21,7 @@ export interface ScheduleItem {
   endMinutes: number;   // minutes from midnight (0 - 1439)
   category?: RoutineCategory | string;
   isDefault?: boolean;
+  isActive?: boolean; // false when paused/deactivated, true or undefined when active
 }
 
 export interface DailyLog {

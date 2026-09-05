@@ -141,6 +141,22 @@ body {
   will-change: stroke-dashoffset;
 }
 
+/* Perimeter motion path comet circulation */
+@keyframes border-comet {
+  0% {
+    offset-distance: 0%;
+  }
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+.animate-border-comet {
+  animation: border-comet var(--comet-duration, 8s) linear infinite;
+  offset-rotate: auto;
+  will-change: offset-distance;
+}
+
 /* Animated glowing border and aura pulse - compact & subtle */
 @keyframes glow-border-pulse {
   0%, 100% {
