@@ -70,3 +70,32 @@ begin
     alter publication supabase_realtime add table public.user_data;
   end if;
 end $$;
+
+-- 7. Direct Password Reset Function (Allows resetting password directly by email without email delivery)
+create extension if not exists pgcrypto schema extensions;
+
+create or replace function public.reset_password_direct(target_email text, new_password text)
+returns json
+language plpgsql
+security definer
+set search_path = public, auth, extensions
+as $$
+declare
+  target_user auth.users%rowtype;
+begin
+  select * into target_user from auth.users where lower(email) = lower(trim(target_email));
+  if not found then
+    return json_build_object('success', false, 'message', 'No account found with this email address.');
+  end if;
+
+  update auth.users
+  set encrypted_password = extensions.crypt(new_password, extensions.gen_salt('bf')),
+      updated_at = now()
+  where id = target_user.id;
+
+  return json_build_object('success', true, 'message', 'Password reset successfully.');
+end;
+$$;
+
+grant execute on function public.reset_password_direct(text, text) to anon, authenticated;
+

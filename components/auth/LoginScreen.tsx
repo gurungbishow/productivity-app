@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User as UserIcon, Sparkles, KeyRound, UserPlus } from 'lucide-react';
+import { supabase, getAppURL } from '@/lib/supabase';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, User as UserIcon, Sparkles, UserPlus } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { useAuth } from '@/lib/authContext';
 
 export function LoginScreen() {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState(''); // Only for signup
@@ -17,6 +17,7 @@ export function LoginScreen() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const { updateProfile } = useAppStore();
+  const { openResetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,17 +31,12 @@ export function LoginScreen() {
     setSuccess(null);
 
     try {
-      if (isForgotPassword) {
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}` : undefined,
-        });
-        if (resetError) throw resetError;
-        setSuccess('Check your email for the password reset link.');
-      } else if (isSignUp) {
+      if (isSignUp) {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
+            emailRedirectTo: `${getAppURL()}/`,
             data: {
               name: name.trim() || 'Hero',
             }
@@ -72,14 +68,6 @@ export function LoginScreen() {
 
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
-    setIsForgotPassword(false);
-    setError(null);
-    setSuccess(null);
-  };
-
-  const toggleForgotPassword = () => {
-    setIsForgotPassword(!isForgotPassword);
-    setIsSignUp(false);
     setError(null);
     setSuccess(null);
   };
@@ -104,15 +92,11 @@ export function LoginScreen() {
             {/* Top Icon Badge */}
             <div className="flex justify-center mb-4">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all duration-300 ${
-                isForgotPassword
-                  ? 'bg-amber-500/15 border-amber-400/30 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)]'
-                  : isSignUp
+                isSignUp
                   ? 'bg-indigo-500/15 border-indigo-400/30 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.25)]'
                   : 'bg-cyan-500/15 border-cyan-400/30 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.25)]'
               }`}>
-                {isForgotPassword ? (
-                  <KeyRound className="w-6 h-6 stroke-[2.2]" />
-                ) : isSignUp ? (
+                {isSignUp ? (
                   <UserPlus className="w-6 h-6 stroke-[2.2]" />
                 ) : (
                   <Sparkles className="w-6 h-6 stroke-[2.2]" />
@@ -121,12 +105,10 @@ export function LoginScreen() {
             </div>
 
             <h2 className="text-[28px] font-black text-white tracking-tight leading-tight">
-              {isForgotPassword ? 'Reset Password' : isSignUp ? 'Create Account' : 'Welcome Back'}
+              {isSignUp ? 'Create Account' : 'Welcome Back'}
             </h2>
             <p className="text-sm text-slate-400 mt-2 font-medium">
-              {isForgotPassword
-                ? 'Enter your email to receive a reset link'
-                : isSignUp 
+              {isSignUp 
                 ? 'Start tracking your daily routines and focus' 
                 : 'Sign in to continue'}
             </p>
@@ -169,43 +151,41 @@ export function LoginScreen() {
               </div>
             </div>
 
-            {!isForgotPassword && (
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between ml-1">
-                  <label className="text-xs font-bold text-slate-300">Password</label>
-                  {!isSignUp && (
-                    <button 
-                      type="button" 
-                      onClick={toggleForgotPassword}
-                      className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300"
-                    >
-                      Forgot?
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-white/[0.05] border border-white/[0.14] text-white text-[15px] rounded-2xl focus:bg-white/[0.08] focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 block pl-12 pr-12 p-3.5 backdrop-blur-xl transition-all placeholder:text-slate-500 shadow-inner [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-                    <Lock className="h-5 w-5 text-slate-400 stroke-[2]" />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors z-10"
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-xs font-bold text-slate-300">Password</label>
+                {!isSignUp && (
+                  <button 
+                    type="button" 
+                    onClick={() => openResetPassword(email.trim())}
+                    className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    Forgot?
                   </button>
-                </div>
+                )}
               </div>
-            )}
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-white/[0.05] border border-white/[0.14] text-white text-[15px] rounded-2xl focus:bg-white/[0.08] focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-400 block pl-12 pr-12 p-3.5 backdrop-blur-xl transition-all placeholder:text-slate-500 shadow-inner [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                  <Lock className="h-5 w-5 text-slate-400 stroke-[2]" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors z-10"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
 
             {error && (
               <div className="p-3 mt-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium animate-in slide-in-from-top-2">
@@ -231,7 +211,7 @@ export function LoginScreen() {
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
-                      {isForgotPassword ? 'Send Reset Link' : isSignUp ? 'Create Account' : 'Sign In'}
+                      {isSignUp ? 'Create Account' : 'Sign In'}
                       <ArrowRight className="w-4.5 h-4.5" />
                     </>
                   )}
@@ -241,29 +221,16 @@ export function LoginScreen() {
           </form>
 
           <div className="mt-8 text-center">
-            {isForgotPassword ? (
-              <p className="text-xs text-slate-400 font-medium">
-                Remembered your password?{' '}
-                <button 
-                  type="button"
-                  onClick={toggleForgotPassword}
-                  className="text-cyan-400 font-bold hover:text-cyan-300 transition-colors"
-                >
-                  Back to Sign In
-                </button>
-              </p>
-            ) : (
-              <p className="text-xs text-slate-400 font-medium">
-                {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-                <button 
-                  type="button"
-                  onClick={toggleMode}
-                  className="text-cyan-400 font-bold hover:text-cyan-300 transition-colors"
-                >
-                  {isSignUp ? 'Sign In' : 'Sign Up'}
-                </button>
-              </p>
-            )}
+            <p className="text-xs text-slate-400 font-medium">
+              {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+              <button 
+                type="button"
+                onClick={toggleMode}
+                className="text-cyan-400 font-bold hover:text-cyan-300 transition-colors cursor-pointer"
+              >
+                {isSignUp ? 'Sign In' : 'Sign Up'}
+              </button>
+            </p>
           </div>
 
           <div className="mt-6 pt-4 border-t border-white/[0.06] text-center">

@@ -10,6 +10,8 @@ interface AuthContextType {
   isLoadingAuth: boolean;
   isRecoveringPassword: boolean;
   recoveryError: string | null;
+  resetEmail: string;
+  openResetPassword: (email?: string) => void;
   clearRecovery: () => void;
 }
 
@@ -19,6 +21,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoadingAuth: true,
   isRecoveringPassword: false,
   recoveryError: null,
+  resetEmail: '',
+  openResetPassword: () => {},
   clearRecovery: () => {},
 });
 
@@ -87,9 +91,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isRecoveringPassword, setIsRecoveringPassword] = useState(detectRecoveryState);
   const [recoveryError, setRecoveryError] = useState<string | null>(getInitialRecoveryError);
 
+  const [resetEmail, setResetEmail] = useState<string>('');
+
+  const openResetPassword = (email?: string) => {
+    if (email) setResetEmail(email);
+    setIsRecoveringPassword(true);
+  };
+
   const clearRecovery = () => {
     setIsRecoveringPassword(false);
     setRecoveryError(null);
+    setResetEmail('');
     if (typeof window !== 'undefined') {
       try {
         sessionStorage.removeItem('is_recovering_password');
@@ -230,6 +242,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoadingAuth,
         isRecoveringPassword,
         recoveryError,
+        resetEmail,
+        openResetPassword,
         clearRecovery,
       }}
     >
