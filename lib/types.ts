@@ -1,3 +1,13 @@
+export type CategoryColor = 'indigo' | 'emerald' | 'amber' | 'purple' | 'rose' | 'cyan' | 'blue' | 'orange';
+
+export interface CustomCategory {
+  id: string;
+  label: string;
+  color: CategoryColor;
+  icon: string; // Lucide icon name, e.g. "Brain", "Dumbbell", "BookOpen", "Moon", "Code", "Briefcase", "Heart", "Coffee", "Sparkles", "Music", "Zap", "Target"
+  isDefault?: boolean;
+}
+
 export type RoutineCategory = 
   | 'deep_work'
   | 'health_fitness'
@@ -9,7 +19,8 @@ export type RoutineCategory =
   | 'study' 
   | 'routine' 
   | 'sleep' 
-  | 'personal';
+  | 'personal'
+  | string;
 
 export interface ScheduleItem {
   id: string;

@@ -1,14 +1,16 @@
 import { supabase } from './supabase';
-import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog } from './types';
+import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog, CustomCategory, Shayari } from './types';
 
 export interface UserDataPayload {
-  profile: UserProfile;
+  profile: UserProfile & { _custom_categories?: CustomCategory[]; _custom_shayaris?: Shayari[] };
   schedule: ScheduleItem[];
   user_default_schedule: ScheduleItem[];
   completed_tasks: { date: string; ids: string[] };
   focus_logs: FocusSessionLog[];
   pomodoro_settings: PomodoroSettings;
   favorite_shayari_ids: number[];
+  custom_categories?: CustomCategory[];
+  custom_shayaris?: Shayari[];
   updated_at?: string;
 }
 
@@ -24,6 +26,8 @@ create table if not exists public.user_data (
   focus_logs jsonb not null default '[]'::jsonb,
   pomodoro_settings jsonb not null default '{}'::jsonb,
   favorite_shayari_ids jsonb not null default '[]'::jsonb,
+  custom_categories jsonb not null default '[]'::jsonb,
+  custom_shayaris jsonb not null default '[]'::jsonb,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -72,7 +76,11 @@ begin
   ) then
     alter publication supabase_realtime add table public.user_data;
   end if;
-end $$;`;
+end $$;
+
+-- 7. Add columns if migrating an existing table
+alter table public.user_data add column if not exists custom_categories jsonb not null default '[]'::jsonb;
+alter table public.user_data add column if not exists custom_shayaris jsonb not null default '[]'::jsonb;`;
 
 function isSetupRequiredError(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
@@ -151,6 +159,18 @@ export async function fetchUserDataFromCloud(userId: string): Promise<{
       return { status: 'not_found' };
     }
 
+    const rawCategories = Array.isArray(data.custom_categories) && data.custom_categories.length > 0
+      ? (data.custom_categories as CustomCategory[])
+      : (Array.isArray(data.profile?._custom_categories) && data.profile._custom_categories.length > 0
+        ? (data.profile._custom_categories as CustomCategory[])
+        : undefined);
+
+    const rawShayaris = Array.isArray(data.custom_shayaris) && data.custom_shayaris.length > 0
+      ? (data.custom_shayaris as Shayari[])
+      : (Array.isArray(data.profile?._custom_shayaris) && data.profile._custom_shayaris.length > 0
+        ? (data.profile._custom_shayaris as Shayari[])
+        : undefined);
+
     return {
       status: 'success',
       data: {
@@ -161,6 +181,8 @@ export async function fetchUserDataFromCloud(userId: string): Promise<{
         focus_logs: Array.isArray(data.focus_logs) ? data.focus_logs : [],
         pomodoro_settings: data.pomodoro_settings || {},
         favorite_shayari_ids: Array.isArray(data.favorite_shayari_ids) ? data.favorite_shayari_ids : [],
+        custom_categories: rawCategories,
+        custom_shayaris: rawShayaris,
         updated_at: data.updated_at,
       },
     };
@@ -184,17 +206,46 @@ export async function saveUserDataToCloud(
 
   try {
     const updatedAt = new Date().toISOString();
+    const profileWithBackup = {
+      ...payload.profile,
+      _custom_categories: payload.custom_categories,
+      _custom_shayaris: payload.custom_shayaris,
+    };
+
+    // Attempt upsert with dedicated columns
     let { error } = await supabase.from('user_data').upsert({
       user_id: userId,
-      profile: payload.profile,
+      profile: profileWithBackup,
       schedule: payload.schedule,
       user_default_schedule: payload.user_default_schedule,
       completed_tasks: payload.completed_tasks,
       focus_logs: payload.focus_logs,
       pomodoro_settings: payload.pomodoro_settings,
       favorite_shayari_ids: payload.favorite_shayari_ids,
+      custom_categories: payload.custom_categories || [],
+      custom_shayaris: payload.custom_shayaris || [],
       updated_at: updatedAt,
     });
+
+    // If dedicated columns are not in Postgres schema cache, fallback to embedding in profile jsonb
+    if (error && (
+      error.message?.includes('custom_categories') ||
+      error.message?.includes('custom_shayaris') ||
+      error.code === 'PGRST204'
+    )) {
+      const fallback = await supabase.from('user_data').upsert({
+        user_id: userId,
+        profile: profileWithBackup,
+        schedule: payload.schedule,
+        user_default_schedule: payload.user_default_schedule,
+        completed_tasks: payload.completed_tasks,
+        focus_logs: payload.focus_logs,
+        pomodoro_settings: payload.pomodoro_settings,
+        favorite_shayari_ids: payload.favorite_shayari_ids,
+        updated_at: updatedAt,
+      });
+      error = fallback.error;
+    }
 
     // If Supabase rejected the JWT (401 incident), attempt refresh & retry
     if (error && isAuthOrJwtError(error)) {
@@ -203,16 +254,37 @@ export async function saveUserDataToCloud(
         if (!refreshError && refreshData?.session) {
           const retry = await supabase.from('user_data').upsert({
             user_id: userId,
-            profile: payload.profile,
+            profile: profileWithBackup,
             schedule: payload.schedule,
             user_default_schedule: payload.user_default_schedule,
             completed_tasks: payload.completed_tasks,
             focus_logs: payload.focus_logs,
             pomodoro_settings: payload.pomodoro_settings,
             favorite_shayari_ids: payload.favorite_shayari_ids,
+            custom_categories: payload.custom_categories || [],
+            custom_shayaris: payload.custom_shayaris || [],
             updated_at: updatedAt,
           });
           error = retry.error;
+
+          if (error && (
+            error.message?.includes('custom_categories') ||
+            error.message?.includes('custom_shayaris') ||
+            error.code === 'PGRST204'
+          )) {
+            const retryFallback = await supabase.from('user_data').upsert({
+              user_id: userId,
+              profile: profileWithBackup,
+              schedule: payload.schedule,
+              user_default_schedule: payload.user_default_schedule,
+              completed_tasks: payload.completed_tasks,
+              focus_logs: payload.focus_logs,
+              pomodoro_settings: payload.pomodoro_settings,
+              favorite_shayari_ids: payload.favorite_shayari_ids,
+              updated_at: updatedAt,
+            });
+            error = retryFallback.error;
+          }
         }
       } catch {}
     }
@@ -253,14 +325,28 @@ export function subscribeToUserDataChanges(
       (payload) => {
         if (payload.new && typeof payload.new === 'object') {
           const remote = payload.new as Record<string, unknown>;
+          const rawProfile = (remote.profile as (UserProfile & { _custom_categories?: CustomCategory[]; _custom_shayaris?: Shayari[] })) || {};
+          const customCategories = Array.isArray(remote.custom_categories) && remote.custom_categories.length > 0
+            ? (remote.custom_categories as CustomCategory[])
+            : (Array.isArray(rawProfile._custom_categories) && rawProfile._custom_categories.length > 0
+              ? rawProfile._custom_categories
+              : undefined);
+          const customShayaris = Array.isArray(remote.custom_shayaris) && remote.custom_shayaris.length > 0
+            ? (remote.custom_shayaris as Shayari[])
+            : (Array.isArray(rawProfile._custom_shayaris) && rawProfile._custom_shayaris.length > 0
+              ? rawProfile._custom_shayaris
+              : undefined);
+
           onRemoteUpdate({
-            profile: (remote.profile as UserProfile) || {},
+            profile: rawProfile,
             schedule: Array.isArray(remote.schedule) ? (remote.schedule as ScheduleItem[]) : [],
             user_default_schedule: Array.isArray(remote.user_default_schedule) ? (remote.user_default_schedule as ScheduleItem[]) : [],
             completed_tasks: (remote.completed_tasks as { date: string; ids: string[] }) || { date: '', ids: [] },
             focus_logs: Array.isArray(remote.focus_logs) ? (remote.focus_logs as FocusSessionLog[]) : [],
             pomodoro_settings: (remote.pomodoro_settings as PomodoroSettings) || {},
             favorite_shayari_ids: Array.isArray(remote.favorite_shayari_ids) ? (remote.favorite_shayari_ids as number[]) : [],
+            custom_categories: customCategories,
+            custom_shayaris: customShayaris,
             updated_at: typeof remote.updated_at === 'string' ? remote.updated_at : undefined,
           });
         }

@@ -8,11 +8,11 @@ import { ScheduleItem } from '@/lib/types';
 import { triggerConfetti, formatDuration } from '@/lib/utils';
 import { getCategoryConfig } from '@/lib/categories';
 
-import { 
-  Clock, 
-  Plus, 
-  Trash2, 
-  Edit2, 
+import {
+  Clock,
+  Plus,
+  Trash2,
+  Edit2,
   Calendar,
   CheckCheck,
   MoreVertical,
@@ -54,6 +54,7 @@ export function TimelineList() {
     userDefaultSchedule,
     saveAsUserDefault,
     loadUserDefault,
+    categories,
   } = useAppStore();
 
   const sortedSchedule = React.useMemo(() => {
@@ -77,11 +78,20 @@ export function TimelineList() {
   const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<ScheduleItem | null>(null);
+  const [isSavedDefault, setIsSavedDefault] = useState(false);
   const mounted = useSyncExternalStore(
-    () => () => {},
+    () => () => { },
     () => true,
     () => false
   );
+
+  const handleSaveDefault = () => {
+    saveAsUserDefault();
+    setIsSavedDefault(true);
+    setTimeout(() => {
+      setIsSavedDefault(false);
+    }, 2000);
+  };
 
   const [formTitle, setFormTitle] = useState('');
   const [formStartTime, setFormStartTime] = useState('09:00 AM');
@@ -146,7 +156,7 @@ export function TimelineList() {
     setFormTitle('');
     setFormStartTime('08:00 AM');
     setFormEndTime('09:00 AM');
-    setFormCategory('deep_work');
+    setFormCategory(categories[0]?.id || 'deep_work');
     setFormDesc('');
     setActiveTimePicker(null);
     setShowAddModal(true);
@@ -157,7 +167,7 @@ export function TimelineList() {
     setFormTitle(item.title);
     setFormStartTime(item.startTime);
     setFormEndTime(item.endTime);
-    setFormCategory(item.category || 'deep_work');
+    setFormCategory(item.category || categories[0]?.id || 'deep_work');
     setFormDesc(item.description || '');
     setActiveTimePicker(null);
     setShowAddModal(true);
@@ -200,13 +210,13 @@ export function TimelineList() {
     return completedTaskIds.filter((id) => activeIds.has(id));
   }, [activeSchedule, completedTaskIds]);
 
-  const completionPercentage = activeSchedule.length > 0 
-    ? Math.round((activeCompletedTaskIds.length / activeSchedule.length) * 100) 
+  const completionPercentage = activeSchedule.length > 0
+    ? Math.round((activeCompletedTaskIds.length / activeSchedule.length) * 100)
     : 0;
 
   return (
     <div className="space-y-4">
-      
+
       {/* Mobile Top Header & Controls */}
       <div className="rounded-3xl p-4 bg-gradient-to-r from-[#10172B]/95 via-[#0C1220]/95 to-[#131127]/95 backdrop-blur-2xl border border-white/[0.1] shadow-[0_15px_35px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.15)] space-y-3">
         {/* Header & Stats Container */}
@@ -215,7 +225,7 @@ export function TimelineList() {
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-500/25 to-purple-500/35 border border-indigo-400/30 flex items-center justify-center shadow-[0_0_14px_rgba(99,102,241,0.3)] shrink-0">
               <Calendar className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-indigo-300" />
             </div>
-            
+
             <div className="flex flex-col justify-center min-w-0 flex-1">
               <h2 className="text-base sm:text-lg font-black tracking-tight text-white truncate">
                 Daily Routine
@@ -240,16 +250,29 @@ export function TimelineList() {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Save as Default Button (only show if schedule has items) */}
             {schedule.length > 0 && (
-              <div className="p-[1.5px] rounded-xl bg-gradient-to-r from-amber-500/40 via-orange-500/40 to-rose-500/40 shadow-sm">
+              <div className={`p-[1.5px] rounded-xl transition-all duration-300 ${isSavedDefault
+                ? 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 shadow-[0_0_14px_rgba(16,185,129,0.4)]'
+                : 'bg-gradient-to-r from-amber-500/40 via-orange-500/40 to-rose-500/40 shadow-sm hover:from-amber-500/60 hover:to-rose-500/60'
+                }`}>
                 <button
-                  onClick={() => {
-                    saveAsUserDefault();
-                  }}
-                  className="flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-2.5 sm:px-3.5 rounded-[10px] bg-[#0E1424] hover:bg-[#141C30] active:scale-95 text-white text-[11px] sm:text-[13px] font-bold transition-all"
-                  title="Save current schedule as your default"
+                  onClick={handleSaveDefault}
+                  className={`flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-2.5 sm:px-3.5 rounded-[10px] active:scale-95 text-[11px] sm:text-[13px] font-bold transition-all ${isSavedDefault
+                    ? 'bg-[#0A1616] text-emerald-300'
+                    : 'bg-[#0E1424] hover:bg-[#141C30] text-white'
+                    }`}
+                  title={isSavedDefault ? "Routine saved!" : "Save routine"}
                 >
-                  <Save className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 stroke-[2.2]" />
-                  <span className="bg-gradient-to-r from-amber-100 to-orange-100 bg-clip-text text-transparent font-black whitespace-nowrap">Set Default</span>
+                  {isSavedDefault ? (
+                    <>
+                      <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400 stroke-[3] animate-in zoom-in-75 duration-150" />
+                      <span className="text-emerald-300 font-black whitespace-nowrap animate-in fade-in duration-150">Saved!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 stroke-[2.2]" />
+                      <span className="bg-gradient-to-r from-amber-100 to-orange-100 bg-clip-text text-transparent font-black whitespace-nowrap">Save</span>
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -259,9 +282,10 @@ export function TimelineList() {
               <button
                 onClick={handleOpenAdd}
                 className="flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-2.5 sm:px-3.5 rounded-[10px] bg-[#0C1220] hover:bg-[#121B30] active:scale-95 text-white text-[11px] sm:text-[13px] font-black transition-all"
+                title="Add new slot"
               >
                 <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-300 stroke-[2.8]" />
-                <span className="bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent font-black whitespace-nowrap">Add Slot</span>
+                <span className="bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent font-black whitespace-nowrap">Add</span>
               </button>
             </div>
           </div>
@@ -287,16 +311,17 @@ export function TimelineList() {
           <Calendar className="w-8 h-8 text-indigo-400 mx-auto" />
           <h3 className="text-sm font-bold text-white">No routine slots configured</h3>
           <p className="text-xs text-slate-400 max-w-xs mx-auto">
-            You can add custom slots or load your saved default routine.
+            You can add custom slots or restore your saved routine.
           </p>
           {userDefaultSchedule.length > 0 && (
             <div className="pt-2 flex justify-center gap-3">
               <button
                 onClick={loadUserDefault}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-xs font-bold transition-all border border-white/10"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-white text-xs font-bold transition-all border border-white/10 hover:border-amber-400/30"
+                title="Restore your saved routine slots"
               >
                 <Folder className="w-3.5 h-3.5 text-amber-400" />
-                Load Default
+                <span>Restore Routine</span>
               </button>
             </div>
           )}
@@ -332,26 +357,24 @@ export function TimelineList() {
           const isCompleted = completedTaskIds.includes(item.id);
           const duration = getSlotDurationMinutes(item);
           const isMenuOpen = openMenuId === item.id;
-          const categoryMeta = getCategoryConfig(item.category);
+          const categoryMeta = getCategoryConfig(item.category, categories);
           const CategoryIcon = categoryMeta.icon;
 
           return (
             <div
               key={item.id}
-              className={`group relative rounded-2xl p-3 sm:p-3.5 transition-all duration-200 ${
-                isMenuOpen ? 'z-30' : 'z-10'
-              } ${
-                active
+              className={`group relative rounded-2xl p-3 sm:p-3.5 transition-all duration-200 ${isMenuOpen ? 'z-30' : 'z-10'
+                } ${active
                   ? 'bg-gradient-to-br from-[#0c1322]/98 via-[#080d18]/98 to-[#050810]/98 shadow-[0_8px_30px_rgba(0,0,0,0.6),0_0_25px_rgba(16,185,129,0.15)]'
                   : isCompleted
-                  ? 'border border-emerald-500/20 bg-gradient-to-br from-[#090D15]/60 via-[#070A10]/70 to-[#05070C]/80 opacity-70 backdrop-blur-md'
-                  : `border border-white/[0.08] bg-gradient-to-br from-[#121829]/90 via-[#0C111F]/92 to-[#080D18]/95 ${categoryMeta.accentBorder} shadow-[0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20`
-              }`}
+                    ? 'border border-emerald-500/20 bg-gradient-to-br from-[#090D15]/60 via-[#070A10]/70 to-[#05070C]/80 opacity-70 backdrop-blur-md'
+                    : `border border-white/[0.08] bg-gradient-to-br from-[#121829]/90 via-[#0C111F]/92 to-[#080D18]/95 ${categoryMeta.accentBorder} shadow-[0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/20`
+                }`}
             >
               {/* Single Crisp Rainbow Rotating Border Beam around Active Container */}
               {active && (
                 <>
-                  <div 
+                  <div
                     className="absolute inset-0 rounded-2xl pointer-events-none overflow-hidden z-0"
                     style={{
                       padding: '1.5px',
@@ -387,18 +410,17 @@ export function TimelineList() {
 
               {/* Top-Aligned Row Layout */}
               <div className="relative z-10 flex items-start justify-between gap-2.5">
-                
+
                 {/* Left: Completion Button (Matches exact text height: w-4 h-4) */}
                 <div className="flex items-start gap-2.5 flex-1 min-w-0">
                   <button
                     onClick={() => handleCheckTask(item.id)}
-                    className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shrink-0 ${
-                      isCompleted
-                        ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 border border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.6)] text-white'
-                        : active
+                    className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 shrink-0 ${isCompleted
+                      ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 border border-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.6)] text-white'
+                      : active
                         ? 'border-[1.75px] border-emerald-400 bg-emerald-500/20 shadow-[0_0_8px_rgba(52,211,153,0.5)]'
                         : 'border-[1.75px] border-slate-500/60 hover:border-slate-300 bg-white/[0.03]'
-                    }`}
+                      }`}
                     aria-label={isCompleted ? "Mark task incomplete" : "Mark task complete"}
                   >
                     {isCompleted && (
@@ -419,11 +441,10 @@ export function TimelineList() {
                       )}
 
                       {/* Subtle category badge with icon */}
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md border text-[9.5px] font-bold leading-none ${
-                        active
-                          ? 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300'
-                          : categoryMeta.badge
-                      }`}>
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md border text-[9.5px] font-bold leading-none ${active
+                        ? 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300'
+                        : categoryMeta.badge
+                        }`}>
                         <CategoryIcon className="w-2.5 h-2.5 stroke-[2.2]" />
                         <span>{categoryMeta.label}</span>
                       </span>
@@ -431,11 +452,10 @@ export function TimelineList() {
 
                     {/* Time & Duration badges */}
                     <div className="flex items-center gap-1.5 flex-wrap text-xs">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border font-mono font-bold text-[11px] shadow-sm leading-none ${
-                        active
-                          ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                          : categoryMeta.timePill
-                      }`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border font-mono font-bold text-[11px] shadow-sm leading-none ${active
+                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                        : categoryMeta.timePill
+                        }`}>
                         <Clock className={`w-3 h-3 ${active ? 'text-emerald-300 stroke-[2.2]' : categoryMeta.clockColor}`} />
                         <span>{item.startTime} – {item.endTime}</span>
                       </span>
@@ -457,11 +477,10 @@ export function TimelineList() {
                 <div data-routine-menu className="relative shrink-0 self-start mt-0.5">
                   <button
                     onClick={() => setOpenMenuId(isMenuOpen ? null : item.id)}
-                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 flex items-center justify-center transition-all active:scale-90 ${
-                      isMenuOpen
-                        ? 'text-indigo-300 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]'
-                        : 'text-slate-400 hover:text-white active:text-indigo-300'
-                    }`}
+                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 flex items-center justify-center transition-all active:scale-90 ${isMenuOpen
+                      ? 'text-indigo-300 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]'
+                      : 'text-slate-400 hover:text-white active:text-indigo-300'
+                      }`}
                     title="Task options"
                     aria-label="Task options"
                   >
@@ -492,7 +511,7 @@ export function TimelineList() {
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 hover:text-amber-200 hover:bg-amber-500/20 active:scale-95 transition-all text-left group"
                       >
                         <PauseCircle className="w-3.5 h-3.5 text-amber-400 group-hover:text-amber-300 transition-colors" />
-                        <span>Pause Slot</span>
+                        <span>Pause</span>
                       </button>
 
                       {/* Subtle Glassmorphic Separator */}
@@ -520,11 +539,13 @@ export function TimelineList() {
 
         {/* Collapsible Paused Routines Tray */}
         {inactiveSchedule.length > 0 && (
-          <div className="mt-4 rounded-2xl border border-dashed border-amber-500/30 bg-gradient-to-br from-[#121624]/90 via-[#0E121E]/90 to-[#0A0D15]/95 backdrop-blur-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] overflow-hidden transition-all">
+          <div className={`mt-4 rounded-2xl border border-dashed border-amber-500/30 bg-gradient-to-br from-[#121624]/90 via-[#0E121E]/90 to-[#0A0D15]/95 backdrop-blur-2xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] transition-all relative ${inactiveSchedule.some((item) => item.id === openMenuId) ? 'z-30' : 'z-10'
+            }`}>
             {/* Tray Header (Accordion Toggle) */}
             <div
               onClick={() => setIsPausedSectionOpen((prev) => !prev)}
-              className="w-full flex items-center justify-between p-3 sm:p-3.5 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
+              className={`w-full flex items-center justify-between p-3 sm:p-3.5 cursor-pointer select-none hover:bg-white/[0.02] transition-colors ${isPausedSectionOpen ? 'rounded-t-2xl' : 'rounded-2xl'
+                }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-7 h-7 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
@@ -566,15 +587,14 @@ export function TimelineList() {
                 {inactiveSchedule.map((item) => {
                   const duration = getSlotDurationMinutes(item);
                   const isMenuOpen = openMenuId === item.id;
-                  const categoryMeta = getCategoryConfig(item.category);
+                  const categoryMeta = getCategoryConfig(item.category, categories);
                   const CategoryIcon = categoryMeta.icon;
 
                   return (
                     <div
                       key={item.id}
-                      className={`relative rounded-xl p-2.5 sm:p-3 border border-white/[0.08] bg-[#0A0D18]/80 backdrop-blur-md transition-all ${
-                        isMenuOpen ? 'z-30' : 'z-10'
-                      }`}
+                      className={`relative rounded-xl p-2.5 sm:p-3 border border-white/[0.08] bg-[#0A0D18]/80 backdrop-blur-md transition-all ${isMenuOpen ? 'z-30' : 'z-10'
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-2.5">
                         <div className="space-y-1 min-w-0 flex-1">
@@ -613,9 +633,8 @@ export function TimelineList() {
                           <div data-routine-menu className="relative">
                             <button
                               onClick={() => setOpenMenuId(isMenuOpen ? null : item.id)}
-                              className={`w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-all ${
-                                isMenuOpen ? 'text-indigo-300' : 'text-slate-400 hover:text-white'
-                              }`}
+                              className={`w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/[0.06] transition-all ${isMenuOpen ? 'text-indigo-300' : 'text-slate-400 hover:text-white'
+                                }`}
                               title="Options"
                               aria-label="Options"
                             >
@@ -623,15 +642,15 @@ export function TimelineList() {
                             </button>
 
                             {isMenuOpen && (
-                              <div className="absolute right-0 top-full mt-1 z-30 min-w-[130px] rounded-2xl bg-[#0B101E]/90 backdrop-blur-2xl border border-white/[0.18] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] space-y-1 animate-in fade-in zoom-in-95 duration-150">
+                              <div className="absolute right-0 top-full mt-1.5 z-40 min-w-[130px] rounded-2xl bg-[#0B101E]/95 backdrop-blur-2xl border border-white/[0.18] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] space-y-1 animate-in fade-in zoom-in-95 duration-150">
                                 <button
                                   onClick={() => {
                                     setOpenMenuId(null);
                                     handleOpenEdit(item);
                                   }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-indigo-500/20 active:scale-95 transition-all text-left"
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-200 hover:text-white hover:bg-indigo-500/20 active:scale-95 transition-all text-left group"
                                 >
-                                  <Edit2 className="w-3.5 h-3.5 text-indigo-400" />
+                                  <Edit2 className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
                                   <span>Edit</span>
                                 </button>
                                 <div className="h-[1px] mx-1 bg-white/[0.08]" />
@@ -640,9 +659,9 @@ export function TimelineList() {
                                     setOpenMenuId(null);
                                     setItemToDelete(item);
                                   }}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 active:scale-95 transition-all text-left"
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-300 hover:text-rose-200 hover:bg-rose-500/20 active:scale-95 transition-all text-left group"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-400 group-hover:text-rose-300 transition-colors" />
                                   <span>Delete</span>
                                 </button>
                               </div>
@@ -668,7 +687,7 @@ export function TimelineList() {
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl animate-in fade-in duration-200"
         >
           <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.14] bg-gradient-to-b from-[#141C32]/95 via-[#0E1526]/95 to-[#080B14]/98 backdrop-blur-3xl p-5 sm:p-6 shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_35px_rgba(99,102,241,0.2),inset_0_1px_1px_rgba(255,255,255,0.2)] space-y-4 animate-in zoom-in-95 duration-200">
-            
+
             {/* Top Aurora Sheen Line */}
             <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400 via-indigo-500 to-transparent opacity-85 pointer-events-none" />
 
@@ -720,16 +739,16 @@ export function TimelineList() {
                 <label className="block text-[11px] font-bold text-slate-300">
                   Category
                 </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(['deep_work', 'health_fitness', 'growth_creative', 'mindfulness'] as const).map((cat) => {
-                    const meta = getCategoryConfig(cat);
+                <div className="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-0.5">
+                  {categories.map((cat) => {
+                    const meta = getCategoryConfig(cat.id, categories);
                     const CatIcon = meta.icon;
-                    const isSelected = formCategory === cat;
+                    const isSelected = formCategory === cat.id;
                     return (
                       <button
-                        key={cat}
+                        key={cat.id}
                         type="button"
-                        onClick={() => setFormCategory(cat)}
+                        onClick={() => setFormCategory(cat.id)}
                         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95 ${
                           isSelected
                             ? `${meta.badge} border-white/40 shadow-sm font-black`
@@ -755,11 +774,10 @@ export function TimelineList() {
                     <button
                       type="button"
                       onClick={() => setActiveTimePicker(activeTimePicker === 'start' ? null : 'start')}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all active:scale-95 ${
-                        activeTimePicker === 'start'
-                          ? 'bg-cyan-500/15 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-                          : 'bg-white/[0.05] border-white/[0.14] hover:bg-white/[0.08] hover:border-cyan-400/50 text-white backdrop-blur-xl'
-                      }`}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all active:scale-95 ${activeTimePicker === 'start'
+                        ? 'bg-cyan-500/15 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                        : 'bg-white/[0.05] border-white/[0.14] hover:bg-white/[0.08] hover:border-cyan-400/50 text-white backdrop-blur-xl'
+                        }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0 stroke-[2.2]" />
@@ -779,11 +797,10 @@ export function TimelineList() {
                     <button
                       type="button"
                       onClick={() => setActiveTimePicker(activeTimePicker === 'end' ? null : 'end')}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all active:scale-95 ${
-                        activeTimePicker === 'end'
-                          ? 'bg-indigo-500/15 border-indigo-400 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                          : 'bg-white/[0.05] border-white/[0.14] hover:bg-white/[0.08] hover:border-indigo-400/50 text-white backdrop-blur-xl'
-                      }`}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all active:scale-95 ${activeTimePicker === 'end'
+                        ? 'bg-indigo-500/15 border-indigo-400 text-indigo-200 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                        : 'bg-white/[0.05] border-white/[0.14] hover:bg-white/[0.08] hover:border-indigo-400/50 text-white backdrop-blur-xl'
+                        }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <Clock className="w-3.5 h-3.5 text-indigo-400 shrink-0 stroke-[2.2]" />
@@ -806,28 +823,26 @@ export function TimelineList() {
                           {activeTimePicker === 'start' ? 'Start Time' : 'End Time'}
                         </span>
                       </div>
-                      
+
                       {/* AM / PM Segmented Pills */}
                       <div className="flex p-0.5 rounded-xl bg-white/[0.06] border border-white/[0.08]">
                         <button
                           type="button"
                           onClick={() => handlePeriodSelect('AM')}
-                          className={`px-3 py-0.5 rounded-lg text-xs font-black transition-all ${
-                            currentPeriod === 'AM'
-                              ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)]'
-                              : 'text-slate-400 hover:text-white'
-                          }`}
+                          className={`px-3 py-0.5 rounded-lg text-xs font-black transition-all ${currentPeriod === 'AM'
+                            ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)]'
+                            : 'text-slate-400 hover:text-white'
+                            }`}
                         >
                           AM
                         </button>
                         <button
                           type="button"
                           onClick={() => handlePeriodSelect('PM')}
-                          className={`px-3 py-0.5 rounded-lg text-xs font-black transition-all ${
-                            currentPeriod === 'PM'
-                              ? 'bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_0_10px_rgba(236,72,153,0.5)]'
-                              : 'text-slate-400 hover:text-white'
-                          }`}
+                          className={`px-3 py-0.5 rounded-lg text-xs font-black transition-all ${currentPeriod === 'PM'
+                            ? 'bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-[0_0_10px_rgba(236,72,153,0.5)]'
+                            : 'text-slate-400 hover:text-white'
+                            }`}
                         >
                           PM
                         </button>
@@ -846,11 +861,10 @@ export function TimelineList() {
                             key={h}
                             type="button"
                             onClick={() => handleHourSelect(h)}
-                            className={`h-8 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 ${
-                              currentHour === h
-                                ? 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.6)] border border-indigo-300/60 font-black'
-                                : 'bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.1] text-slate-300'
-                            }`}
+                            className={`h-8 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 ${currentHour === h
+                              ? 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.6)] border border-indigo-300/60 font-black'
+                              : 'bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.1] text-slate-300'
+                              }`}
                           >
                             {h}
                           </button>
@@ -870,11 +884,10 @@ export function TimelineList() {
                             key={m}
                             type="button"
                             onClick={() => handleMinuteSelect(m)}
-                            className={`h-8 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 ${
-                              currentMinute === m
-                                ? 'bg-gradient-to-tr from-cyan-500 to-teal-400 text-white shadow-[0_0_12px_rgba(6,182,212,0.6)] border border-cyan-300/60 font-black'
-                                : 'bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.1] text-slate-300'
-                            }`}
+                            className={`h-8 rounded-xl text-xs font-mono font-bold transition-all active:scale-90 ${currentMinute === m
+                              ? 'bg-gradient-to-tr from-cyan-500 to-teal-400 text-white shadow-[0_0_12px_rgba(6,182,212,0.6)] border border-cyan-300/60 font-black'
+                              : 'bg-white/[0.04] border border-white/[0.07] hover:bg-white/[0.1] text-slate-300'
+                              }`}
                           >
                             {m}
                           </button>
@@ -964,7 +977,7 @@ export function TimelineList() {
         >
           {/* Glassmorphic Modal Dialog Card with Liquid Frosted Glass Aesthetics */}
           <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.22] border-t-white/[0.4] bg-gradient-to-br from-white/[0.14] via-[#0E1322]/70 to-[#060913]/80 backdrop-blur-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(244,63,94,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(255,255,255,0.1)] p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150">
-            
+
             {/* Prismatic Top Rim Light Sheen */}
             <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-white/90 via-rose-300/80 to-transparent opacity-95 pointer-events-none" />
 

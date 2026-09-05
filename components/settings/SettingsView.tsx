@@ -21,12 +21,23 @@ import {
   VolumeX,
   Play,
   Zap,
-  AlertTriangle
+  AlertTriangle,
+  Edit2,
+  Trash2,
+  Layers,
+  Quote,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { supabase } from '@/lib/supabase';
 import { playTimerEndSound } from '@/lib/utils';
-import { PomodoroSoundType } from '@/lib/types';
+import { PomodoroSoundType, CustomCategory, CategoryColor, Shayari } from '@/lib/types';
+import {
+  CATEGORY_ICONS,
+  AVAILABLE_CATEGORY_ICONS,
+  CATEGORY_COLOR_THEMES,
+  getCategoryConfig,
+} from '@/lib/categories';
 
 export function SettingsView() {
   const {
@@ -36,6 +47,14 @@ export function SettingsView() {
     updateProfile,
     schedule,
     clearSchedule,
+    categories,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    shayaris,
+    addShayari,
+    updateShayari,
+    deleteShayari,
   } = useAppStore();
 
   const { user } = useAuth();
@@ -44,14 +63,147 @@ export function SettingsView() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const mounted = useSyncExternalStore(
-    () => () => {},
+    () => () => { },
     () => true,
     () => false
   );
 
+  // Category management state
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [catModalMode, setCatModalMode] = useState<'add' | 'edit'>('add');
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [catFormLabel, setCatFormLabel] = useState('');
+  const [catFormColor, setCatFormColor] = useState<CategoryColor>('indigo');
+  const [catFormIcon, setCatFormIcon] = useState('Layers');
+  const [catToDelete, setCatToDelete] = useState<CustomCategory | null>(null);
+
+  // Shayari management state
+  const [shayariModalOpen, setShayariModalOpen] = useState(false);
+  const [shayariModalMode, setShayariModalMode] = useState<'add' | 'edit'>('add');
+  const [editingShayariId, setEditingShayariId] = useState<number | null>(null);
+  const [shayariFormLines, setShayariFormLines] = useState('');
+  const [shayariFormTranslation, setShayariFormTranslation] = useState('');
+  const [shayariToDelete, setShayariToDelete] = useState<Shayari | null>(null);
+
+  const COLOR_OPTIONS: { id: CategoryColor; label: string; bg: string; border: string; glow: string }[] = [
+    { id: 'indigo', label: 'Indigo', bg: 'bg-indigo-500', border: 'border-indigo-400', glow: 'shadow-indigo-500/40' },
+    { id: 'emerald', label: 'Emerald', bg: 'bg-emerald-500', border: 'border-emerald-400', glow: 'shadow-emerald-500/40' },
+    { id: 'amber', label: 'Amber', bg: 'bg-amber-500', border: 'border-amber-400', glow: 'shadow-amber-500/40' },
+    { id: 'purple', label: 'Purple', bg: 'bg-purple-500', border: 'border-purple-400', glow: 'shadow-purple-500/40' },
+    { id: 'rose', label: 'Rose', bg: 'bg-rose-500', border: 'border-rose-400', glow: 'shadow-rose-500/40' },
+    { id: 'cyan', label: 'Cyan', bg: 'bg-cyan-500', border: 'border-cyan-400', glow: 'shadow-cyan-500/40' },
+    { id: 'blue', label: 'Blue', bg: 'bg-blue-500', border: 'border-blue-400', glow: 'shadow-blue-500/40' },
+    { id: 'orange', label: 'Orange', bg: 'bg-orange-500', border: 'border-orange-400', glow: 'shadow-orange-500/40' },
+  ];
+
   const showNotification = (msg: string) => {
     setSavedMessage(msg);
     setTimeout(() => setSavedMessage(null), 2500);
+  };
+
+  const handleOpenAddCategory = () => {
+    setCatModalMode('add');
+    setEditingCatId(null);
+    setCatFormLabel('');
+    setCatFormColor('indigo');
+    setCatFormIcon('Layers');
+    setCatModalOpen(true);
+  };
+
+  const handleOpenEditCategory = (cat: CustomCategory) => {
+    setCatModalMode('edit');
+    setEditingCatId(cat.id);
+    setCatFormLabel(cat.label);
+    setCatFormColor(cat.color);
+    setCatFormIcon(cat.icon);
+    setCatModalOpen(true);
+  };
+
+  const handleSaveCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = catFormLabel.trim();
+    if (!trimmed) return;
+
+    if (catModalMode === 'add') {
+      addCategory({
+        label: trimmed,
+        color: catFormColor,
+        icon: catFormIcon,
+      });
+      showNotification(`Added category "${trimmed}"`);
+    } else if (editingCatId) {
+      updateCategory(editingCatId, {
+        label: trimmed,
+        color: catFormColor,
+        icon: catFormIcon,
+      });
+      showNotification(`Updated category "${trimmed}"`);
+    }
+    setCatModalOpen(false);
+  };
+
+  const handleConfirmDeleteCategory = () => {
+    if (!catToDelete) return;
+    if (categories.length <= 1) {
+      showNotification('Cannot delete the last category');
+      setCatToDelete(null);
+      return;
+    }
+    deleteCategory(catToDelete.id);
+    showNotification(`Deleted category "${catToDelete.label}"`);
+    setCatToDelete(null);
+  };
+
+  const handleOpenAddShayari = () => {
+    setShayariModalMode('add');
+    setEditingShayariId(null);
+    setShayariFormLines('');
+    setShayariFormTranslation('');
+    setShayariModalOpen(true);
+  };
+
+  const handleOpenEditShayari = (item: Shayari) => {
+    setShayariModalMode('edit');
+    setEditingShayariId(item.id);
+    setShayariFormLines(item.lines.join('\n'));
+    setShayariFormTranslation(item.translation || '');
+    setShayariModalOpen(true);
+  };
+
+  const handleSaveShayari = (e: React.FormEvent) => {
+    e.preventDefault();
+    const lines = shayariFormLines
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (lines.length === 0) return;
+
+    if (shayariModalMode === 'add') {
+      addShayari({
+        lines,
+        translation: shayariFormTranslation.trim(),
+      });
+      showNotification('Added new motivational quote');
+    } else if (editingShayariId !== null) {
+      updateShayari(editingShayariId, {
+        lines,
+        translation: shayariFormTranslation.trim(),
+      });
+      showNotification('Updated motivational quote');
+    }
+    setShayariModalOpen(false);
+  };
+
+  const handleConfirmDeleteShayari = () => {
+    if (!shayariToDelete) return;
+    if (shayaris.length <= 1) {
+      showNotification('Cannot delete the last quote');
+      setShayariToDelete(null);
+      return;
+    }
+    deleteShayari(shayariToDelete.id);
+    showNotification('Deleted motivational quote');
+    setShayariToDelete(null);
   };
 
   const handlePomodoroChange = (key: 'workMinutes' | 'shortBreakMinutes' | 'longBreakMinutes', val: number) => {
@@ -67,8 +219,8 @@ export function SettingsView() {
       key === 'autoStartBreaks'
         ? `Auto-start breaks ${newVal ? 'enabled' : 'disabled'}`
         : key === 'autoStartFocus'
-        ? `Auto-start focus ${newVal ? 'enabled' : 'disabled'}`
-        : `Sound alerts ${newVal ? 'enabled' : 'muted'}`
+          ? `Auto-start focus ${newVal ? 'enabled' : 'disabled'}`
+          : `Sound alerts ${newVal ? 'enabled' : 'muted'}`
     );
   };
 
@@ -358,11 +510,10 @@ export function SettingsView() {
             {/* Auto-start Breaks Card */}
             <div
               onClick={() => handleToggle('autoStartBreaks')}
-              className={`cursor-pointer p-2.5 sm:p-3 rounded-xl border transition-all duration-200 flex items-center justify-between gap-2.5 ${
-                pomodoroSettings.autoStartBreaks
-                  ? 'bg-emerald-500/[0.08] border-emerald-500/30 shadow-[0_0_14px_rgba(16,185,129,0.12)]'
-                  : 'bg-white/[0.02] border-white/[0.08] hover:border-white/[0.15]'
-              }`}
+              className={`cursor-pointer p-2.5 sm:p-3 rounded-xl border transition-all duration-200 flex items-center justify-between gap-2.5 ${pomodoroSettings.autoStartBreaks
+                ? 'bg-emerald-500/[0.08] border-emerald-500/30 shadow-[0_0_14px_rgba(16,185,129,0.12)]'
+                : 'bg-white/[0.02] border-white/[0.08] hover:border-white/[0.15]'
+                }`}
             >
               <div>
                 <div className="flex items-center gap-1.5">
@@ -375,23 +526,20 @@ export function SettingsView() {
               </div>
 
               {/* Sleek Glowing Toggle Switch */}
-              <div className={`w-9 h-5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${
-                pomodoroSettings.autoStartBreaks ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-700'
-              }`}>
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${
-                  pomodoroSettings.autoStartBreaks ? 'translate-x-4' : 'translate-x-0'
-                }`} />
+              <div className={`w-9 h-5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${pomodoroSettings.autoStartBreaks ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-700'
+                }`}>
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${pomodoroSettings.autoStartBreaks ? 'translate-x-4' : 'translate-x-0'
+                  }`} />
               </div>
             </div>
 
             {/* Auto-start Focus Card */}
             <div
               onClick={() => handleToggle('autoStartFocus')}
-              className={`cursor-pointer p-2.5 sm:p-3 rounded-xl border transition-all duration-200 flex items-center justify-between gap-2.5 ${
-                pomodoroSettings.autoStartFocus
-                  ? 'bg-indigo-500/[0.08] border-indigo-500/30 shadow-[0_0_14px_rgba(99,102,241,0.12)]'
-                  : 'bg-white/[0.02] border-white/[0.08] hover:border-white/[0.15]'
-              }`}
+              className={`cursor-pointer p-2.5 sm:p-3 rounded-xl border transition-all duration-200 flex items-center justify-between gap-2.5 ${pomodoroSettings.autoStartFocus
+                ? 'bg-indigo-500/[0.08] border-indigo-500/30 shadow-[0_0_14px_rgba(99,102,241,0.12)]'
+                : 'bg-white/[0.02] border-white/[0.08] hover:border-white/[0.15]'
+                }`}
             >
               <div>
                 <div className="flex items-center gap-1.5">
@@ -404,12 +552,10 @@ export function SettingsView() {
               </div>
 
               {/* Sleek Glowing Toggle Switch */}
-              <div className={`w-9 h-5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${
-                pomodoroSettings.autoStartFocus ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-slate-700'
-              }`}>
-                <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${
-                  pomodoroSettings.autoStartFocus ? 'translate-x-4' : 'translate-x-0'
-                }`} />
+              <div className={`w-9 h-5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${pomodoroSettings.autoStartFocus ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-slate-700'
+                }`}>
+                <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${pomodoroSettings.autoStartFocus ? 'translate-x-4' : 'translate-x-0'
+                  }`} />
               </div>
             </div>
           </div>
@@ -426,11 +572,10 @@ export function SettingsView() {
                 <button
                   key={count}
                   onClick={() => handleLongBreakIntervalChange(count)}
-                  className={`px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 active:scale-95 ${
-                    (pomodoroSettings.longBreakInterval || 4) === count
-                      ? 'bg-gradient-to-tr from-cyan-600 to-indigo-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.45)] border border-cyan-400/50'
-                      : 'bg-white/[0.04] border border-white/[0.08] text-slate-400 hover:text-white'
-                  }`}
+                  className={`px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold transition-all duration-200 active:scale-95 ${(pomodoroSettings.longBreakInterval || 4) === count
+                    ? 'bg-gradient-to-tr from-cyan-600 to-indigo-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.45)] border border-cyan-400/50'
+                    : 'bg-white/[0.04] border border-white/[0.08] text-slate-400 hover:text-white'
+                    }`}
                 >
                   {count}
                 </button>
@@ -453,13 +598,11 @@ export function SettingsView() {
             {/* Sound Toggle Switch */}
             <div
               onClick={() => handleToggle('soundEnabled')}
-              className={`cursor-pointer w-9 h-5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${
-                pomodoroSettings.soundEnabled ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-slate-700'
-              }`}
+              className={`cursor-pointer w-9 h-5 rounded-full transition-colors duration-250 ease-out relative p-0.5 shrink-0 ${pomodoroSettings.soundEnabled ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-slate-700'
+                }`}
             >
-              <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${
-                pomodoroSettings.soundEnabled ? 'translate-x-4' : 'translate-x-0'
-              }`} />
+              <div className={`w-4 h-4 rounded-full bg-white transition-transform duration-250 ease-out shadow-md ${pomodoroSettings.soundEnabled ? 'translate-x-4' : 'translate-x-0'
+                }`} />
             </div>
           </div>
 
@@ -473,11 +616,10 @@ export function SettingsView() {
                     <button
                       key={snd.id}
                       onClick={() => handleSoundTypeChange(snd.id)}
-                      className={`p-2 rounded-xl border text-left transition-all duration-150 active:scale-95 flex flex-col justify-between gap-1 ${
-                        isSelected
-                          ? 'bg-gradient-to-br from-indigo-500/20 via-purple-500/15 to-transparent border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
-                          : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.15] text-slate-400 hover:text-white'
-                      }`}
+                      className={`p-2 rounded-xl border text-left transition-all duration-150 active:scale-95 flex flex-col justify-between gap-1 ${isSelected
+                        ? 'bg-gradient-to-br from-indigo-500/20 via-purple-500/15 to-transparent border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
+                        : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.15] text-slate-400 hover:text-white'
+                        }`}
                     >
                       <div className="flex items-center justify-between w-full">
                         <span className="text-sm">{snd.icon}</span>
@@ -525,11 +667,10 @@ export function SettingsView() {
                 <button
                   onClick={handleTestSound}
                   disabled={isPlayingTest}
-                  className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all active:scale-95 flex items-center gap-1.5 shrink-0 ${
-                    isPlayingTest
-                      ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.5)]'
-                      : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/[0.12] text-indigo-300 hover:text-white'
-                  }`}
+                  className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all active:scale-95 flex items-center gap-1.5 shrink-0 ${isPlayingTest
+                    ? 'bg-indigo-500 text-white border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.5)]'
+                    : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/[0.12] text-indigo-300 hover:text-white'
+                    }`}
                 >
                   <Play className={`w-2.5 h-2.5 ${isPlayingTest ? 'fill-white animate-spin' : 'fill-indigo-300'}`} />
                   <span>{isPlayingTest ? 'Playing...' : 'Test'}</span>
@@ -568,14 +709,14 @@ export function SettingsView() {
               <p className="text-[10.5px] text-slate-400">Shown in your daily greeting.</p>
             </div>
             <div className="relative flex items-center">
-              <User className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none stroke-[2.2]" />
               <input
                 type="text"
                 value={profile.name}
                 onChange={(e) => handleProfileNameChange(e.target.value)}
                 placeholder="Enter name"
-                className="w-32 sm:w-40 rounded-lg bg-white/[0.05] border border-white/[0.14] focus:bg-white/[0.08] focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/25 pl-7.5 pr-2.5 py-1.5 text-xs font-bold text-white shadow-inner backdrop-blur-xl transition-all outline-none"
+                className="w-32 sm:w-40 rounded-lg bg-white/[0.05] border border-white/[0.14] focus:bg-white/[0.08] focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 pl-8 pr-2.5 py-1.5 text-xs font-bold text-white shadow-inner backdrop-blur-xl transition-all outline-none"
               />
+              <User className="w-3.5 h-3.5 text-cyan-400 absolute left-2.5 pointer-events-none stroke-[2.2] z-10 drop-shadow-[0_0_8px_rgba(6,182,212,0.45)]" />
             </div>
           </div>
 
@@ -633,11 +774,10 @@ export function SettingsView() {
                   key={val}
                   type="button"
                   onClick={() => applyFocusGoal(val, true)}
-                  className={`px-2.5 py-0.5 rounded-lg text-[11px] font-mono font-bold transition-all active:scale-90 cursor-pointer ${
-                    currentGoalHours === val
-                      ? 'bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-500 text-white shadow-[0_0_12px_rgba(245,158,11,0.55)] border border-amber-300/60 font-black'
-                      : 'bg-white/[0.04] border border-white/[0.08] hover:border-amber-400/30 text-slate-300 hover:text-white'
-                  }`}
+                  className={`px-2.5 py-0.5 rounded-lg text-[11px] font-mono font-bold transition-all active:scale-90 cursor-pointer ${currentGoalHours === val
+                    ? 'bg-gradient-to-tr from-amber-600 via-amber-500 to-yellow-500 text-white shadow-[0_0_12px_rgba(245,158,11,0.55)] border border-amber-300/60 font-black'
+                    : 'bg-white/[0.04] border border-white/[0.08] hover:border-amber-400/30 text-slate-300 hover:text-white'
+                    }`}
                 >
                   {val}h
                 </button>
@@ -681,7 +821,172 @@ export function SettingsView() {
         </div>
       </div>
 
-      {/* SECTION 3: ACCOUNT PROFILE */}
+      {/* SECTION 3: ROUTINE CATEGORIES */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.10] bg-gradient-to-br from-[#12192B]/95 via-[#0D1322]/95 to-[#0A0E18]/98 backdrop-blur-2xl p-3.5 sm:p-4 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.10)] space-y-3.5">
+        <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-indigo-400/50 to-transparent pointer-events-none" />
+        <div className="absolute -top-12 -left-12 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
+              <Layers className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                Routine Categories
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-400/25">
+                  {categories.length}
+                </span>
+              </h2>
+              <p className="text-[10.5px] text-slate-400">Custom categories for scheduling and tracking</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenAddCategory}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white text-xs font-bold shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Add</span>
+          </button>
+        </div>
+
+        {/* Categories Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {categories.map((cat) => {
+            const config = getCategoryConfig(cat.label, categories);
+            const IconComp = config.icon;
+            const isProtected = categories.length <= 1;
+
+            return (
+              <div
+                key={cat.id}
+                className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl bg-[#070A12]/60 border border-white/5 hover:border-white/10 transition-all group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 ${config.badge}`}>
+                    <IconComp className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white block truncate">
+                      {cat.label}
+                    </span>
+                    <span className="text-[10px] text-slate-400 capitalize">
+                      {cat.color} • {cat.icon}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditCategory(cat)}
+                    className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.12] text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                    title="Edit category"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isProtected}
+                    onClick={() => setCatToDelete(cat)}
+                    className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center transition-all cursor-pointer"
+                    title={isProtected ? 'Cannot delete the only category' : 'Delete category'}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SECTION 4: MOTIVATIONAL SHAYARI & QUOTES */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/[0.10] bg-gradient-to-br from-[#12192B]/95 via-[#0D1322]/95 to-[#0A0E18]/98 backdrop-blur-2xl p-3.5 sm:p-4 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.10)] space-y-3.5">
+        <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent pointer-events-none" />
+        <div className="absolute -top-12 -left-12 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center">
+              <Quote className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                Daily Motivation & Shayari
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/25">
+                  {shayaris.length}
+                </span>
+              </h2>
+              <p className="text-[10.5px] text-slate-400">Quotes shown on your daily dashboard</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenAddShayari}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white text-xs font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)] active:scale-95 transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Add</span>
+          </button>
+        </div>
+
+        {/* Shayari Scrollable List */}
+        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+          {shayaris.map((item, idx) => {
+            const isProtected = shayaris.length <= 1;
+            return (
+              <div
+                key={item.id}
+                className="flex items-start justify-between gap-3 p-3 rounded-xl bg-[#070A12]/60 border border-white/5 hover:border-white/10 transition-all group"
+              >
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      #{idx + 1}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-200 font-serif italic space-y-0.5">
+                    {item.lines.map((line, lIdx) => (
+                      <p key={lIdx} className="leading-snug">&ldquo;{line}&rdquo;</p>
+                    ))}
+                  </div>
+                  {item.translation && (
+                    <p className="text-[10.5px] text-slate-400 not-italic font-sans pt-0.5 line-clamp-2">
+                      {item.translation}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditShayari(item)}
+                    className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.12] text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                    title="Edit quote"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isProtected}
+                    onClick={() => setShayariToDelete(item)}
+                    className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 disabled:opacity-20 disabled:pointer-events-none flex items-center justify-center transition-all cursor-pointer"
+                    title={isProtected ? 'Cannot delete the only quote' : 'Delete quote'}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SECTION 5: ACCOUNT PROFILE */}
       {user && (
         <div className="relative overflow-hidden rounded-2xl border border-white/[0.10] bg-gradient-to-br from-[#12192B]/95 via-[#0D1322]/95 to-[#0A0E18]/98 backdrop-blur-2xl p-3.5 sm:p-4 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.10)] space-y-3">
           <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent pointer-events-none" />
@@ -725,7 +1030,7 @@ export function SettingsView() {
         >
           {/* Glassmorphic Modal Dialog Card with Liquid Frosted Glass Aesthetics */}
           <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.22] border-t-white/[0.4] bg-gradient-to-br from-white/[0.14] via-[#0E1322]/70 to-[#060913]/80 backdrop-blur-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(244,63,94,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(255,255,255,0.1)] p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150">
-            
+
             {/* Prismatic Top Rim Light Sheen */}
             <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-white/90 via-rose-300/80 to-transparent opacity-95 pointer-events-none" />
 
@@ -793,6 +1098,390 @@ export function SettingsView() {
               </button>
             </div>
 
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Category Add/Edit Modal */}
+      {mounted && catModalOpen && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCatModalOpen(false);
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xl animate-in fade-in duration-150"
+        >
+          <div className="relative overflow-hidden w-full max-w-md rounded-[28px] border border-white/[0.22] border-t-white/[0.4] bg-gradient-to-br from-white/[0.14] via-[#0E1322]/85 to-[#060913]/90 backdrop-blur-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(99,102,241,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(255,255,255,0.1)] p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            {/* Top Rim Light Sheen */}
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-300/80 to-transparent opacity-95 pointer-events-none" />
+            <div className="absolute -top-20 -right-16 w-52 h-52 bg-indigo-500/25 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300">
+                  <Layers className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-tight">
+                    {catModalMode === 'add' ? 'Add Routine Category' : 'Edit Routine Category'}
+                  </h3>
+                  <p className="text-[11px] text-slate-300">
+                    {catModalMode === 'add' ? 'Create a custom category for your routines' : 'Update category name, style, and icon'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCatModalOpen(false)}
+                className="w-7 h-7 rounded-xl bg-white/[0.08] hover:bg-white/[0.2] border border-white/[0.22] backdrop-blur-2xl text-slate-300 hover:text-white flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]"
+                aria-label="Close"
+              >
+                <X className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} className="space-y-4 relative z-10">
+              {/* Category Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-200">Category Name</label>
+                <input
+                  type="text"
+                  required
+                  value={catFormLabel}
+                  onChange={(e) => setCatFormLabel(e.target.value)}
+                  placeholder="e.g. Deep Work, Workout, Reading..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#070A12]/80 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/30 transition-all"
+                  autoFocus
+                />
+              </div>
+
+              {/* Color Palette */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>Color Theme</span>
+                  <span className="text-[10px] font-mono text-slate-400 capitalize">{catFormColor}</span>
+                </label>
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                  {COLOR_OPTIONS.map((col) => {
+                    const isSelected = catFormColor === col.id;
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => setCatFormColor(col.id)}
+                        className={`h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${col.bg} ${isSelected
+                          ? 'ring-2 ring-white ring-offset-2 ring-offset-[#070A12] scale-105 shadow-md'
+                          : 'opacity-70 hover:opacity-100 hover:scale-100'
+                          }`}
+                        title={col.label}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Icon Picker */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>Icon</span>
+                  <span className="text-[10px] font-mono text-slate-400">{catFormIcon}</span>
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {AVAILABLE_CATEGORY_ICONS.map((iconKey) => {
+                    const IconComponent = CATEGORY_ICONS[iconKey] || Layers;
+                    const isSelected = catFormIcon === iconKey;
+                    return (
+                      <button
+                        key={iconKey}
+                        type="button"
+                        onClick={() => setCatFormIcon(iconKey)}
+                        className={`h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${isSelected
+                          ? 'bg-indigo-500/20 border-indigo-400 text-indigo-300 ring-1 ring-indigo-400 shadow-sm'
+                          : 'bg-white/[0.04] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.08]'
+                          }`}
+                        title={iconKey}
+                      >
+                        <IconComponent className="w-4 h-4" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Live Preview */}
+              {(() => {
+                const PreviewIcon = CATEGORY_ICONS[catFormIcon] || Layers;
+                const theme = CATEGORY_COLOR_THEMES[catFormColor] || CATEGORY_COLOR_THEMES.indigo;
+                return (
+                  <div className="p-3 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-400">Preview:</span>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border shadow-sm ${theme.badge}`}>
+                      <PreviewIcon className="w-3.5 h-3.5" />
+                      <span>{catFormLabel.trim() || 'Category Name'}</span>
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCatModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.18] text-slate-200 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!catFormLabel.trim()}
+                  className="px-4.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>{catModalMode === 'add' ? 'Save Category' : 'Update Category'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Category Delete Confirmation Modal */}
+      {mounted && catToDelete && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCatToDelete(null);
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xl animate-in fade-in duration-150"
+        >
+          <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.22] border-t-white/[0.4] bg-gradient-to-br from-white/[0.14] via-[#0E1322]/85 to-[#060913]/90 backdrop-blur-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(244,63,94,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.45)] p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-rose-300/80 to-transparent opacity-95 pointer-events-none" />
+            <div className="absolute -top-20 -right-16 w-52 h-52 bg-rose-500/25 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-start gap-3 relative z-10">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 pr-6">
+                <h3 className="text-base font-black text-white tracking-tight">
+                  Delete Category?
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Are you sure you want to delete <span className="font-bold text-white bg-white/10 px-1.5 py-0.5 rounded border border-white/20">&ldquo;{catToDelete.label}&rdquo;</span>?
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCatToDelete(null)}
+                className="absolute top-0 right-0 w-7 h-7 rounded-xl bg-white/[0.08] hover:bg-white/[0.2] border border-white/[0.22] text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white/[0.06] border border-white/10 text-[11px] text-slate-300 leading-snug relative z-10">
+              ℹ️ Existing scheduled slots using this category will remain unchanged, but this category won&apos;t be available for new slots.
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-1 relative z-10">
+              <button
+                type="button"
+                onClick={() => setCatToDelete(null)}
+                className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.18] text-slate-200 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteCategory}
+                className="flex-1 sm:flex-initial px-4.5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white text-xs font-black shadow-[0_0_20px_rgba(244,63,94,0.5)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Shayari Add/Edit Modal */}
+      {mounted && shayariModalOpen && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShayariModalOpen(false);
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xl animate-in fade-in duration-150"
+        >
+          <div className="relative overflow-hidden w-full max-w-md rounded-[28px] border border-white/[0.22] border-t-white/[0.4] bg-gradient-to-br from-white/[0.14] via-[#0E1322]/85 to-[#060913]/90 backdrop-blur-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(245,158,11,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.45),inset_0_-1px_1px_rgba(255,255,255,0.1)] p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/80 to-transparent opacity-95 pointer-events-none" />
+            <div className="absolute -top-20 -right-16 w-52 h-52 bg-amber-500/25 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300">
+                  <Quote className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-tight">
+                    {shayariModalMode === 'add' ? 'Add Motivation / Shayari' : 'Edit Motivation / Shayari'}
+                  </h3>
+                  <p className="text-[11px] text-slate-300">
+                    Inspiring verses displayed on your dashboard widget
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShayariModalOpen(false)}
+                className="w-7 h-7 rounded-xl bg-white/[0.08] hover:bg-white/[0.2] border border-white/[0.22] backdrop-blur-2xl text-slate-300 hover:text-white flex items-center justify-center active:scale-90 transition-all cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]"
+                aria-label="Close"
+              >
+                <X className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveShayari} className="space-y-4 relative z-10">
+              {/* Lines textarea */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>Lines (one per line)</span>
+                  <span className="text-[10px] text-slate-400">Poetry / Verse</span>
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={shayariFormLines}
+                  onChange={(e) => setShayariFormLines(e.target.value)}
+                  placeholder="उम्र थका नहीं सकती, ठोकरें गिरा नहीं सकती...&#10;अगर ज़िद हो जीतने की तो हार भी हरा नहीं सकती..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#070A12]/80 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 font-serif leading-relaxed transition-all resize-none"
+                  autoFocus
+                />
+              </div>
+
+              {/* Translation textarea */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                  <span>English Translation / Context <span className="text-slate-400 font-normal">(optional)</span></span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={shayariFormTranslation}
+                  onChange={(e) => setShayariFormTranslation(e.target.value)}
+                  placeholder="Age cannot tire you, stumbles cannot defeat you..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#070A12]/80 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/30 transition-all resize-none"
+                />
+              </div>
+
+              {/* Live Preview */}
+              <div className="p-3 rounded-2xl bg-white/[0.05] border border-white/10 space-y-1.5">
+                <span className="text-[10.5px] font-bold uppercase tracking-wider text-amber-400/90 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Live Preview
+                </span>
+                <div className="space-y-1 font-serif italic text-xs text-slate-200">
+                  {shayariFormLines.trim() ? (
+                    shayariFormLines
+                      .split('\n')
+                      .filter((l) => l.trim())
+                      .map((l, i) => <p key={i}>&ldquo;{l}&rdquo;</p>)
+                  ) : (
+                    <p className="text-slate-500 not-italic font-sans text-[11px]">
+                      Enter lines above to see the live preview...
+                    </p>
+                  )}
+                </div>
+                {shayariFormTranslation.trim() && (
+                  <p className="text-[10.5px] text-slate-400 font-sans border-t border-white/5 pt-1.5 mt-1">
+                    {shayariFormTranslation.trim()}
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShayariModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.18] text-slate-200 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!shayariFormLines.trim()}
+                  className="px-4.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>{shayariModalMode === 'add' ? 'Save Quote' : 'Update Quote'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Shayari Delete Confirmation Modal */}
+      {mounted && shayariToDelete && createPortal(
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShayariToDelete(null);
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-2xl animate-in fade-in duration-150"
+        >
+          <div className="relative overflow-hidden w-full max-w-sm rounded-[28px] border border-white/[0.22] border-t-white/[0.4] bg-gradient-to-br from-white/[0.14] via-[#0E1322]/85 to-[#060913]/90 backdrop-blur-3xl shadow-[0_25px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(244,63,94,0.25),inset_0_1.5px_1.5px_rgba(255,255,255,0.45)] p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-rose-300/80 to-transparent opacity-95 pointer-events-none" />
+            <div className="absolute -top-20 -right-16 w-52 h-52 bg-rose-500/25 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-start gap-3 relative z-10">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center text-rose-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 pr-6">
+                <h3 className="text-base font-black text-white tracking-tight">
+                  Delete Motivation / Shayari?
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed font-serif italic line-clamp-2">
+                  &ldquo;{shayariToDelete.lines[0]}&rdquo;
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShayariToDelete(null)}
+                className="absolute top-0 right-0 w-7 h-7 rounded-xl bg-white/[0.08] hover:bg-white/[0.2] border border-white/[0.22] text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white/[0.06] border border-white/10 text-[11px] text-slate-300 leading-snug relative z-10">
+              ⚠️ This quote will be permanently removed from your rotation pool.
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-1 relative z-10">
+              <button
+                type="button"
+                onClick={() => setShayariToDelete(null)}
+                className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.18] text-slate-200 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteShayari}
+                className="flex-1 sm:flex-initial px-4.5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white text-xs font-black shadow-[0_0_20px_rgba(244,63,94,0.5)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
         </div>,
         document.body

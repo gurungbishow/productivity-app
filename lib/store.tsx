@@ -1,8 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog, PomodoroMode, GlobalPomodoroState } from './types';
+import { ScheduleItem, UserProfile, PomodoroSettings, FocusSessionLog, PomodoroMode, GlobalPomodoroState, CustomCategory, Shayari } from './types';
 import { DEFAULT_SCHEDULE, parseTimeToMinutes, sortScheduleAscending } from './scheduleEngine';
+import { DEFAULT_CATEGORIES } from './categories';
+import { MOTIVATIONAL_SHAYARIS } from './shayaris';
 import { triggerConfetti, playTimerEndSound, sendNotificationSafe } from './utils';
 import { useAuth } from './authContext';
 import {
@@ -24,6 +26,14 @@ interface AppContextType {
   userDefaultSchedule: ScheduleItem[];
   saveAsUserDefault: () => void;
   loadUserDefault: () => void;
+  categories: CustomCategory[];
+  addCategory: (cat: Omit<CustomCategory, 'id'>) => void;
+  updateCategory: (id: string, updates: Partial<CustomCategory>) => void;
+  deleteCategory: (id: string) => void;
+  shayaris: Shayari[];
+  addShayari: (item: Omit<Shayari, 'id'>) => void;
+  updateShayari: (id: number, updates: Partial<Shayari>) => void;
+  deleteShayari: (id: number) => void;
   activeTaskForTimer: string | null;
   setActiveTaskForTimer: (taskName: string | null) => void;
   toggleTaskCompleted: (id: string) => boolean; // returns new completed status
@@ -65,6 +75,8 @@ const STORAGE_KEYS = {
   SETTINGS: 'bishow_productivity_settings_v1',
   FAVORITE_SHAYARIS: 'bishow_productivity_fav_shayaris_v1',
   USER_DEFAULT_SCHEDULE: 'bishow_productivity_user_default_v1',
+  CATEGORIES: 'bishow_productivity_custom_categories_v1',
+  SHAYARIS: 'bishow_productivity_custom_shayaris_v1',
 };
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -103,6 +115,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pomodoroSettings, setPomodoroSettings] = useState<PomodoroSettings>(DEFAULT_SETTINGS);
   const [favoriteShayariIds, setFavoriteShayariIds] = useState<number[]>([]);
   const [userDefaultSchedule, setUserDefaultSchedule] = useState<ScheduleItem[]>([]);
+  const [categories, setCategories] = useState<CustomCategory[]>(DEFAULT_CATEGORIES);
+  const [shayaris, setShayaris] = useState<Shayari[]>(MOTIVATIONAL_SHAYARIS);
   const [activeTaskForTimer, setActiveTaskForTimer] = useState<string | null>(null);
 
   // Global Pomodoro State
@@ -226,6 +240,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
 
+      // Load Custom Categories
+      const savedCategories = localStorage.getItem(STORAGE_KEYS.CATEGORIES);
+      if (savedCategories) {
+        try {
+          const parsed = JSON.parse(savedCategories);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCategories(parsed);
+          }
+        } catch {}
+      }
+
+      // Load Custom Shayaris
+      const savedShayaris = localStorage.getItem(STORAGE_KEYS.SHAYARIS);
+      if (savedShayaris) {
+        try {
+          const parsed = JSON.parse(savedShayaris);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setShayaris(parsed);
+          }
+        } catch {}
+      }
+
       // Load Pomodoro Global State
       const savedTimerState = localStorage.getItem('pomodoro-state');
       if (savedTimerState) {
@@ -335,6 +371,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userDefaultSchedule, isLoaded]);
 
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [categories, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    try {
+      localStorage.setItem(STORAGE_KEYS.SHAYARIS, JSON.stringify(shayaris));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [shayaris, isLoaded]);
+
   // Persist Pomodoro State whenever it changes
   useEffect(() => {
     if (!isLoaded) return;
@@ -377,6 +431,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const favoriteShayariIdsRef = useRef(favoriteShayariIds);
   useEffect(() => { favoriteShayariIdsRef.current = favoriteShayariIds; }, [favoriteShayariIds]);
+
+  const categoriesRef = useRef(categories);
+  useEffect(() => { categoriesRef.current = categories; }, [categories]);
+
+  const shayarisRef = useRef(shayaris);
+  useEffect(() => { shayarisRef.current = shayaris; }, [shayaris]);
 
   const isHydratingFromRemoteRef = useRef(false);
   const initialCloudLoadDoneRef = useRef(false);
@@ -422,6 +482,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           focus_logs: focusLogsRef.current,
           pomodoro_settings: pomodoroSettingsRef.current,
           favorite_shayari_ids: favoriteShayariIdsRef.current,
+          custom_categories: categoriesRef.current,
+          custom_shayaris: shayarisRef.current,
         };
         const saveRes = await saveUserDataToCloud(userId, payload);
         if (saveRes.status === 'success') {
@@ -456,6 +518,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           focus_logs: focusLogsRef.current.length > 0 ? focusLogsRef.current : cloudData.focus_logs,
           pomodoro_settings: pomodoroSettingsRef.current,
           favorite_shayari_ids: favoriteShayariIdsRef.current.length > 0 ? favoriteShayariIdsRef.current : cloudData.favorite_shayari_ids,
+          custom_categories: categoriesRef.current,
+          custom_shayaris: shayarisRef.current,
         };
         await saveUserDataToCloud(userId, payload);
         setSyncStatus('synced');
@@ -491,6 +555,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         if (Array.isArray(cloudData.favorite_shayari_ids)) {
           setFavoriteShayariIds(cloudData.favorite_shayari_ids);
+        }
+        if (Array.isArray(cloudData.custom_categories) && cloudData.custom_categories.length > 0) {
+          setCategories(cloudData.custom_categories);
+        }
+        if (Array.isArray(cloudData.custom_shayaris) && cloudData.custom_shayaris.length > 0) {
+          setShayaris(cloudData.custom_shayaris);
         }
 
         setTimeout(() => {
@@ -554,6 +624,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (Array.isArray(remoteData.favorite_shayari_ids)) {
         setFavoriteShayariIds(remoteData.favorite_shayari_ids);
       }
+      if (Array.isArray(remoteData.custom_categories) && remoteData.custom_categories.length > 0) {
+        setCategories(remoteData.custom_categories);
+      }
+      if (Array.isArray(remoteData.custom_shayaris) && remoteData.custom_shayaris.length > 0) {
+        setShayaris(remoteData.custom_shayaris);
+      }
 
       setSyncStatus('synced');
       setLastSyncedAt(remoteData.updated_at || new Date().toISOString());
@@ -585,6 +661,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         focus_logs: focusLogs,
         pomodoro_settings: pomodoroSettings,
         favorite_shayari_ids: favoriteShayariIds,
+        custom_categories: categories,
+        custom_shayaris: shayaris,
       };
 
       const res = await saveUserDataToCloud(user.id, payload);
@@ -610,6 +688,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     pomodoroSettings,
     favoriteShayariIds,
     userDefaultSchedule,
+    categories,
+    shayaris,
     user,
     isLoaded,
   ]);
@@ -642,6 +722,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               if (Array.isArray(res.data.focus_logs)) setFocusLogs(res.data.focus_logs);
               if (res.data.pomodoro_settings) setPomodoroSettings((prev) => ({ ...prev, ...res.data!.pomodoro_settings }));
               if (Array.isArray(res.data.favorite_shayari_ids)) setFavoriteShayariIds(res.data.favorite_shayari_ids);
+              if (Array.isArray(res.data.custom_categories) && res.data.custom_categories.length > 0) {
+                setCategories(res.data.custom_categories);
+              }
+              if (Array.isArray(res.data.custom_shayaris) && res.data.custom_shayaris.length > 0) {
+                setShayaris(res.data.custom_shayaris);
+              }
 
               setTimeout(() => {
                 isHydratingFromRemoteRef.current = false;
@@ -671,6 +757,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       focus_logs: focusLogsRef.current,
       pomodoro_settings: pomodoroSettingsRef.current,
       favorite_shayari_ids: favoriteShayariIdsRef.current,
+      custom_categories: categoriesRef.current,
+      custom_shayaris: shayarisRef.current,
     };
     const res = await saveUserDataToCloud(user.id, payload);
     if (res.status === 'success') {
@@ -715,6 +803,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setPomodoroSettings((prev) => ({ ...prev, ...res.data!.pomodoro_settings }));
       }
       if (Array.isArray(res.data.favorite_shayari_ids)) setFavoriteShayariIds(res.data.favorite_shayari_ids);
+      if (Array.isArray(res.data.custom_categories) && res.data.custom_categories.length > 0) {
+        setCategories(res.data.custom_categories);
+      }
+      if (Array.isArray(res.data.custom_shayaris) && res.data.custom_shayaris.length > 0) {
+        setShayaris(res.data.custom_shayaris);
+      }
 
       setTimeout(() => {
         isHydratingFromRemoteRef.current = false;
@@ -875,6 +969,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCompletedTaskIds([]);
     }
   }, [userDefaultSchedule]);
+
+  const addCategory = useCallback((cat: Omit<CustomCategory, 'id'>) => {
+    const newId = `cat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    setCategories((prev) => [...prev, { ...cat, id: newId }]);
+  }, []);
+
+  const updateCategory = useCallback((id: string, updates: Partial<CustomCategory>) => {
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...updates } : c)));
+  }, []);
+
+  const deleteCategory = useCallback((id: string) => {
+    setCategories((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((c) => c.id !== id);
+    });
+  }, []);
+
+  const addShayari = useCallback((item: Omit<Shayari, 'id'>) => {
+    const newId = Date.now();
+    setShayaris((prev) => [{ ...item, id: newId }, ...prev]);
+  }, []);
+
+  const updateShayari = useCallback((id: number, updates: Partial<Shayari>) => {
+    setShayaris((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
+  }, []);
+
+  const deleteShayari = useCallback((id: number) => {
+    setShayaris((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((s) => s.id !== id);
+    });
+    setFavoriteShayariIds((prev) => prev.filter((favId) => favId !== id));
+  }, []);
 
   // --- Pomodoro Global Timer Engine ---
   
@@ -1236,6 +1363,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         userDefaultSchedule,
         saveAsUserDefault,
         loadUserDefault,
+        categories,
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        shayaris,
+        addShayari,
+        updateShayari,
+        deleteShayari,
         todayFocusMinutes,
         todayCompletedCount,
         timerState,

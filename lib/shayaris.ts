@@ -162,21 +162,24 @@ export const MOTIVATIONAL_SHAYARIS: Shayari[] = [
   }
 ];
 
-export function getDailyShayari(date: Date = new Date()): Shayari {
+export function getDailyShayari(date: Date = new Date(), customList?: Shayari[]): Shayari {
+  const list = (customList && customList.length > 0) ? customList : MOTIVATIONAL_SHAYARIS;
   const startOfYear = new Date(date.getFullYear(), 0, 1);
   const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
-  const index = Math.abs(dayOfYear) % MOTIVATIONAL_SHAYARIS.length;
-  return MOTIVATIONAL_SHAYARIS[index];
+  const index = Math.abs(dayOfYear) % list.length;
+  return list[index] || MOTIVATIONAL_SHAYARIS[0];
 }
 
-export function getRandomShayari(currentId?: number): Shayari {
-  let nextIndex = Math.floor(Math.random() * MOTIVATIONAL_SHAYARIS.length);
-  if (currentId !== undefined && MOTIVATIONAL_SHAYARIS.length > 1) {
+export function getRandomShayari(currentId?: number, customList?: Shayari[]): Shayari {
+  const list = (customList && customList.length > 0) ? customList : MOTIVATIONAL_SHAYARIS;
+  if (list.length === 1) return list[0];
+  let nextIndex = Math.floor(Math.random() * list.length);
+  if (currentId !== undefined && list.length > 1) {
     let attempts = 0;
-    while (MOTIVATIONAL_SHAYARIS[nextIndex].id === currentId && attempts < 20) {
-      nextIndex = Math.floor(Math.random() * MOTIVATIONAL_SHAYARIS.length);
+    while (list[nextIndex].id === currentId && attempts < 20) {
+      nextIndex = Math.floor(Math.random() * list.length);
       attempts++;
     }
   }
-  return MOTIVATIONAL_SHAYARIS[nextIndex];
+  return list[nextIndex] || MOTIVATIONAL_SHAYARIS[0];
 }

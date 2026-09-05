@@ -22,7 +22,8 @@ export function DailyAnalyticsAccordion() {
     todayCompletedCount,
     profile,
     pomodoroSettings,
-    timerState
+    timerState,
+    categories,
   } = useAppStore();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -329,7 +330,7 @@ export function DailyAnalyticsAccordion() {
 
               <div className="space-y-2">
                 {categoryStats.map((item) => {
-                  const meta = getCategoryConfig(item.category);
+                  const meta = getCategoryConfig(item.category, categories);
                   const Icon = meta.icon;
                   const catPercent = item.totalCount > 0 ? Math.round((item.completedCount / item.totalCount) * 100) : 0;
                   const hoursText = (item.plannedMinutes / 60).toFixed(1).replace('.0', '');

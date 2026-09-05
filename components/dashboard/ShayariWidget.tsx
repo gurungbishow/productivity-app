@@ -1,19 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { getDailyShayari, getRandomShayari } from '@/lib/shayaris';
-import { Shayari } from '@/lib/types';
+import { useAppStore } from '@/lib/store';
 import { Quote, Shuffle, Sparkles } from 'lucide-react';
 
 export function ShayariWidget() {
-  const [currentShayari, setCurrentShayari] = useState<Shayari>(() => getDailyShayari(new Date()));
+  const { shayaris } = useAppStore();
+  const [selectedShayariId, setSelectedShayariId] = useState<number | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
+
+  // Derive active shayari directly during render without effect cascading
+  const displayShayari = useMemo(() => {
+    if (!shayaris || shayaris.length === 0) {
+      return {
+        id: 1,
+        lines: ['Consistency creates mastery.'],
+        translation: 'Small daily steps compound into life-changing triumphs.',
+      };
+    }
+    if (selectedShayariId !== null) {
+      const found = shayaris.find((s) => s.id === selectedShayariId);
+      if (found) return found;
+    }
+    return getDailyShayari(new Date(), shayaris);
+  }, [shayaris, selectedShayariId]);
 
   const handleNext = () => {
     setIsFlipping(true);
     setTimeout(() => {
-      const next = getRandomShayari(currentShayari.id);
-      setCurrentShayari(next);
+      const next = getRandomShayari(displayShayari.id, shayaris);
+      setSelectedShayariId(next.id);
       setIsFlipping(false);
     }, 200);
   };
@@ -48,7 +65,7 @@ export function ShayariWidget() {
       {/* Shayari Lines with Smooth Flip Transition */}
       <div className={`transition-all duration-200 ease-out space-y-3.5 ${isFlipping ? 'opacity-0 scale-[0.98] translate-y-1' : 'opacity-100 scale-100 translate-y-0'}`}>
         <div className="space-y-1 my-0.5 pl-1 border-l-2 border-amber-400/40">
-          {currentShayari.lines.map((line, idx) => (
+          {displayShayari.lines.map((line, idx) => (
             <p key={idx} className="text-base sm:text-lg font-serif font-bold text-amber-100/95 leading-relaxed tracking-wide drop-shadow-sm pl-2">
               {line}
             </p>
@@ -58,7 +75,7 @@ export function ShayariWidget() {
         {/* English Meaning Box (Translucent Liquid Amber Glass) */}
         <div className="p-3.5 rounded-2xl bg-amber-500/[0.07] border border-amber-400/[0.2] backdrop-blur-xl text-xs text-slate-300 leading-relaxed shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] space-y-0.5">
           <span className="text-amber-400 font-black mr-1.5 tracking-tight uppercase text-[10px]">Essence:</span>
-          <span className="text-slate-200 font-medium">{currentShayari.translation}</span>
+          <span className="text-slate-200 font-medium">{displayShayari.translation}</span>
         </div>
       </div>
 
