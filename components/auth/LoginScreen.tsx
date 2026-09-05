@@ -160,7 +160,7 @@ export function LoginScreen() {
                     onClick={() => openResetPassword(email.trim())}
                     className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
                   >
-                    Forgot?
+                    Forgot password?
                   </button>
                 )}
               </div>
